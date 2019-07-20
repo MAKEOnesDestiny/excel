@@ -2,14 +2,20 @@ package com.zhou.demo.excel.bean;
 
 import com.zhou.demo.excel.annotation.Column;
 import com.zhou.demo.excel.annotation.Excel;
+import com.zhou.demo.excel.factory.converter.TestConverter;
 import lombok.Data;
+
+import java.math.BigDecimal;
 
 @Excel
 @Data
 public class TestBean {
 
+    @Column(headerName = "价格",convert = TestConverter.class)
+    private BigDecimal price;
+
     @Column(headerName = "平台"/*,setter = "setPlatform"*/)
-    private Integer platform;
+    private int platform;
 
     @Column(headerName = "OMS商家编码"/*,setter = "setOmsBusinessCode"*/)
     private String omsBusinessCode;
@@ -22,5 +28,8 @@ public class TestBean {
 
     @Column(headerName = "平台商品名称"/*,setter = "setPlatformGoodsName"*/)
     private String platformGoodsName;
+
+    @Column(headerName = "过期产品")
+    private boolean deprecated;
 
 }

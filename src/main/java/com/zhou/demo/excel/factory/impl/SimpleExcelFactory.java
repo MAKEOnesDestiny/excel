@@ -4,12 +4,17 @@ import com.zhou.demo.excel.annotation.Column;
 import com.zhou.demo.excel.annotation.ColumnWrap;
 import com.zhou.demo.excel.annotation.Excel;
 import com.zhou.demo.excel.config.ApplicationContextAccessor;
+import com.zhou.demo.excel.exception.ExcelDataWrongException;
 import com.zhou.demo.excel.factory.ExcelFactory;
 import com.zhou.demo.excel.factory.ExcelPos;
+import com.zhou.demo.excel.factory.converter.EmptyConverter;
 import lombok.extern.log4j.Log4j2;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.beans.BeanUtils;
+import org.springframework.core.convert.ConversionException;
 import org.springframework.core.convert.ConversionService;
+import org.springframework.core.convert.converter.Converter;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -27,6 +32,7 @@ import static org.springframework.util.ReflectionUtils.invokeMethod;
 
 @Log4j2
 public class SimpleExcelFactory implements ExcelFactory {
+
 
     public ExcelPos findPos(String s, Row row) {
         short fNum = row.getFirstCellNum();
@@ -54,7 +60,7 @@ public class SimpleExcelFactory implements ExcelFactory {
         Field[] fields = clazz.getDeclaredFields();
         for (Field f : fields) {
             Column c = f.getAnnotation(Column.class);
-            ExcelPos pos = null;
+            ExcelPos pos;
             if (c != null && (pos = findPos(c.headerName(), row)) != null) {
                 //获取set方法的名称
                 String setMethodName = findSetMethod(f, true);
@@ -73,13 +79,50 @@ public class SimpleExcelFactory implements ExcelFactory {
         return map;
     }
 
+    public void validExcel(Workbook workBook, Excel excel) throws Exception {
+    }
 
     @Override
-    public <T> List<T> toBean(InputStream inputStream, Class<T> targetClass) throws IOException, IllegalAccessException, InstantiationException, NoSuchMethodException {
+    public boolean skipBlank() {
+        return false;
+    }
+
+    private final <T> Object convert(String rawValue, ColumnWrap cw, ExcelPos pos, Class<T> tClass) throws ExcelDataWrongException {
+        Column column = cw.getColumn();
+        ConversionService conversionService = ApplicationContextAccessor.getApplicationContext().getBean(ConversionService.class);
+
+        Object parsedValue;
+        Class<? extends Converter> converterClass = column.convert();
+        //有自定义的转换器
+        if(converterClass!=EmptyConverter.class){
+            Converter converter = BeanUtils.instantiateClass(converterClass);
+            return converter.convert(rawValue);
+        }
+        //复用Web请求参数解析服务
+        if (tClass != String.class) {
+            if (conversionService.canConvert(String.class, tClass)) {
+                try {
+                    parsedValue = conversionService.convert(rawValue, tClass);
+                } catch (ConversionException e1) {
+                    //发生转换异常
+                    throw new ExcelDataWrongException(e1.getMessage(), rawValue, column.headerName(), pos);
+                }
+            } else {
+                log.info("无法转换[{}]为{}类型", rawValue, tClass.getCanonicalName());
+                parsedValue = null;
+            }
+        } else parsedValue = rawValue;
+        return parsedValue;
+    }
+
+    @Override
+    public <T> List<T> toBean(InputStream inputStream, Class<T> targetClass) throws Exception {
         Excel excel = targetClass.getAnnotation(Excel.class);
         if (excel == null) throw new RuntimeException(targetClass.getCanonicalName() + "没有配置@Excel注解!");
 
         Workbook wb = new XSSFWorkbook(inputStream);
+        validExcel(wb, excel);
+
         Sheet sheet = wb.getSheetAt(excel.sheet());
         List<T> result = new ArrayList<>();
         Map<ColumnWrap, ExcelPos> mapping = null;
@@ -93,32 +136,26 @@ public class SimpleExcelFactory implements ExcelFactory {
             //处理数据
             Row row = sheet.getRow(i);
             T bean = targetClass.newInstance();
+            boolean evictBlank = true;  //剔除全空行
             for (Map.Entry<ColumnWrap, ExcelPos> e : mapping.entrySet()) {
                 ColumnWrap cw = e.getKey();
                 Column column = cw.getColumn();
                 ExcelPos pos = e.getValue();
+                Class tClass = cw.getField().getType();
+
                 Cell cell = row.getCell(pos.getColumnIndex());
                 if (cell == null) continue; //代表单元格为空
+                if (cell.getCellTypeEnum() == CellType.BLANK && skipBlank()) continue;
                 cell.setCellType(CellType.STRING); //同一设置为string
                 String rawValue = cell.getStringCellValue(); //单元格值
-                Object parsedValue = null;
-
-                //复用Web请求参数解析服务
-                ConversionService conversionService = ApplicationContextAccessor.getApplicationContext().getBean(ConversionService.class);
-                Class tClass = cw.getField().getType();
-                if (tClass != String.class) {
-                    if (conversionService.canConvert(String.class, tClass)) {
-                        parsedValue = conversionService.convert(rawValue, tClass);
-                    } else {
-                        log.info("无法转换[{}]为{}类型", rawValue, tClass.getCanonicalName());
-                        continue;
-                    }
-                } else parsedValue = rawValue;
-                //todo:参数转换
+                Object parsedValue;
+                //转换数据
+                parsedValue = convert(rawValue, cw, pos, tClass);
                 Method setMethod = findMethod(targetClass, column.setter(), tClass);
                 invokeMethod(setMethod, bean, parsedValue);
+                evictBlank = false;
             }
-            result.add(bean);
+            if (!evictBlank) result.add(bean);
         }
         return result;
     }

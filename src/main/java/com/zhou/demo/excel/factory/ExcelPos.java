@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class ExcelPos{
+public class ExcelPos {
 
     /**
      * 表格中的行序号(0,1,2,3....)
@@ -20,5 +20,9 @@ public class ExcelPos{
      */
     private Integer columnIndex;
 
+    @Override
+    public String toString() {
+        return "[row:" + (rowIndex + 1) + ",column:" + (columnIndex + 1) + "]";
+    }
 
 }

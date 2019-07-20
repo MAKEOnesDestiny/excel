@@ -1,5 +1,8 @@
 package com.zhou.demo.excel.annotation;
 
+import com.zhou.demo.excel.factory.converter.EmptyConverter;
+import org.springframework.core.convert.converter.Converter;
+
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -17,5 +20,10 @@ public @interface Column {
     String headerName();
 
     String setter() default "";
+
+    /**
+     * 转换器
+     */
+    Class<? extends Converter> convert() default EmptyConverter.class;
 
 }
