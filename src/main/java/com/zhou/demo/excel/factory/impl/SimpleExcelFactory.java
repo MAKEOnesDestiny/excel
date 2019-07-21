@@ -1,14 +1,17 @@
 package com.zhou.demo.excel.factory.impl;
 
+import com.sun.xml.internal.messaging.saaj.util.ByteOutputStream;
 import com.zhou.demo.excel.annotation.Column;
 import com.zhou.demo.excel.annotation.ColumnWrap;
 import com.zhou.demo.excel.annotation.Excel;
+import com.zhou.demo.excel.annotation.ExcelBeanMetaData;
 import com.zhou.demo.excel.config.ApplicationContextAccessor;
 import com.zhou.demo.excel.exception.ExcelDataWrongException;
 import com.zhou.demo.excel.factory.ExcelFactory;
 import com.zhou.demo.excel.factory.ExcelPos;
 import com.zhou.demo.excel.factory.converter.EmptyConverter;
 import lombok.extern.log4j.Log4j2;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.BeanUtils;
@@ -16,14 +19,17 @@ import org.springframework.core.convert.ConversionException;
 import org.springframework.core.convert.ConversionService;
 import org.springframework.core.convert.converter.Converter;
 
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static com.zhou.demo.excel.utils.BeanUtil.findSetMethod;
 import static com.zhou.demo.excel.utils.SelfAnnotationUtil.getMemberValuesMap;
@@ -33,6 +39,7 @@ import static org.springframework.util.ReflectionUtils.invokeMethod;
 @Log4j2
 public class SimpleExcelFactory implements ExcelFactory {
 
+    private final static Map<Class, ExcelBeanMetaData> cache = new ConcurrentHashMap<>();
 
     public ExcelPos findPos(String s, Row row) {
         short fNum = row.getFirstCellNum();
@@ -76,6 +83,7 @@ public class SimpleExcelFactory implements ExcelFactory {
             }
             //else skip
         }
+//        cache.put(clazz, map);
         return map;
     }
 
@@ -94,7 +102,7 @@ public class SimpleExcelFactory implements ExcelFactory {
         Object parsedValue;
         Class<? extends Converter> converterClass = column.convert();
         //有自定义的转换器
-        if(converterClass!=EmptyConverter.class){
+        if (converterClass != EmptyConverter.class) {
             Converter converter = BeanUtils.instantiateClass(converterClass);
             return converter.convert(rawValue);
         }
@@ -160,5 +168,49 @@ public class SimpleExcelFactory implements ExcelFactory {
         return result;
     }
 
+    @Override
+    public <T> Workbook generateEmptyExcel(Class<T> targetClass) throws IOException {
+        Workbook wb = new HSSFWorkbook();
+        Excel excel = targetClass.getAnnotation(Excel.class);
+        String sheetName = excel.sheetName();
+        Sheet sheet = wb.createSheet(sheetName.equals("") ? "sheet1" : sheetName);
+        Row row = sheet.createRow(excel.offset());
+        ExcelBeanMetaData excelBeanMetaData = getExcelBeanMeta(targetClass);
+        ColumnWrap[] cws = excelBeanMetaData.getColumnWraps();
+        for (int i = 0; i < cws.length; i++) {
+            if (cws == null) continue;
+            ColumnWrap cw = cws[i];
+            Column c = cw.getColumn();
+            Cell cell = row.createCell(i);
+            cell.setCellValue(c.headerName());
+        }
+        return wb;
+    }
+
+    public <T> ExcelBeanMetaData getExcelBeanMeta(Class<T> targetClass) {
+        ExcelBeanMetaData excelBeanMetaData = cache.get(targetClass);
+        if (excelBeanMetaData == null) {
+            excelBeanMetaData = resolveExcelBeanMeta(targetClass);
+            cache.put(targetClass, excelBeanMetaData);
+        }
+        return excelBeanMetaData;
+    }
+
+    public <T> ExcelBeanMetaData resolveExcelBeanMeta(Class<T> targetClass) {
+        Excel excel = targetClass.getAnnotation(Excel.class);
+        Field[] fields = targetClass.getDeclaredFields();
+        ColumnWrap[] cws = new ColumnWrap[fields.length];
+        for (int i = 0; i < fields.length; i++) {
+            Field f = fields[i];
+            Column c = f.getAnnotation(Column.class);
+            if (c != null) {
+                cws[i] = new ColumnWrap(c, f);
+            }
+            //else skip
+        }
+        ExcelBeanMetaData metaData = new ExcelBeanMetaData(excel, cws);
+        cache.put(targetClass, metaData);
+        return metaData;
+    }
 
 }
