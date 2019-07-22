@@ -45,7 +45,7 @@ public class SimpleExcelFactory implements ExcelFactory {
         short fNum = row.getFirstCellNum();
         short lNum = row.getLastCellNum();
         if (fNum < 0 || lNum < 0) return null;
-        for (int i = fNum; i <= lNum; i++) {
+        for (int i = fNum; i < lNum; i++) {
             Cell cell = row.getCell(i);
             //todo:添加表头校验
             String value = cell.getStringCellValue();
@@ -154,7 +154,7 @@ public class SimpleExcelFactory implements ExcelFactory {
                 Cell cell = row.getCell(pos.getColumnIndex());
                 if (cell == null) continue; //代表单元格为空
                 if (cell.getCellTypeEnum() == CellType.BLANK && skipBlank()) continue;
-                cell.setCellType(CellType.STRING); //同一设置为string
+                cell.setCellType(CellType.STRING); //统一设置为string
                 String rawValue = cell.getStringCellValue(); //单元格值
                 Object parsedValue;
                 //转换数据

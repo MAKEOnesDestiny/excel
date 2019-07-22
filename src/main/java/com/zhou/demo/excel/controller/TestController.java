@@ -6,16 +6,19 @@ import com.zhou.demo.excel.bean.TestBean;
 import com.zhou.demo.excel.exception.ExcelDataWrongException;
 import com.zhou.demo.excel.factory.ExcelFactory;
 import com.zhou.demo.excel.factory.impl.SimpleExcelFactory;
+import com.zhou.demo.excel.utils.TokenUtil;
 import lombok.extern.log4j.Log4j2;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.ReflectionUtils;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 import javax.servlet.http.Part;
 import java.io.OutputStream;
 import java.lang.reflect.Field;
@@ -29,7 +32,8 @@ public class TestController {
 
     @RequestMapping("/upload")
     @ResponseBody
-    public Object upload(HttpServletRequest request) throws Exception {
+    public Object upload(HttpServletRequest request
+            , @RequestParam(value = "preview", required = false, defaultValue = "false") boolean preview) throws Exception {
         Part part = request.getPart("file");
         ExcelFactory factory = new SimpleExcelFactory() {
             @Override
@@ -42,6 +46,10 @@ public class TestController {
             list = factory.toBean(part.getInputStream(), TestBean.class);
         } catch (ExcelDataWrongException e) {
             return e.toString();
+        }
+        if (preview) {
+            String uuid = TokenUtil.getUUID();
+            request.getSession().setAttribute(uuid, list);
         }
         return list;
     }
@@ -59,6 +67,28 @@ public class TestController {
         OutputStream os = response.getOutputStream();
         factory.generateEmptyExcel(clazz).write(os);
     }
+
+    @RequestMapping("/preview")
+    @ResponseBody
+    public Object preview(@RequestParam("preCode") String preCode, HttpServletRequest request) throws Exception {
+        if (StringUtils.isEmpty(preCode)) {
+            log.debug("preCode为空");
+            return null;
+        }
+        HttpSession session = request.getSession();
+        Object result = session.getAttribute(preCode);
+        if (result == null) {
+            //没有找到preCode
+        }
+        return result;
+    }
+
+    @RequestMapping("/session")
+    @ResponseBody
+    public String session(HttpServletRequest request) throws Exception {
+        return request.getSession().getId();
+    }
+
 
     public static void main(String[] args) throws ClassNotFoundException {
         /*ClassLoader cl = TestBean.class.getClassLoader();
