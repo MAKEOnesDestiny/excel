@@ -14,7 +14,7 @@ public class TestBean {
     @Column(headerName = "价格",convert = TestConverter.class)
     private BigDecimal price;
 
-    @Column(headerName = "平台"/*,setter = "setPlatform"*/)
+    @Column(headerName = "平台")
     private int platform;
 
     @Column(headerName = "OMS商家编码"/*,setter = "setOmsBusinessCode"*/)

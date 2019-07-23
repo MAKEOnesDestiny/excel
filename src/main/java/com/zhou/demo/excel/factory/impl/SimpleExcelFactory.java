@@ -1,6 +1,5 @@
 package com.zhou.demo.excel.factory.impl;
 
-import com.sun.xml.internal.messaging.saaj.util.ByteOutputStream;
 import com.zhou.demo.excel.annotation.Column;
 import com.zhou.demo.excel.annotation.ColumnWrap;
 import com.zhou.demo.excel.annotation.Excel;
@@ -19,10 +18,8 @@ import org.springframework.core.convert.ConversionException;
 import org.springframework.core.convert.ConversionService;
 import org.springframework.core.convert.converter.Converter;
 
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -38,6 +35,21 @@ import static org.springframework.util.ReflectionUtils.invokeMethod;
 
 @Log4j2
 public class SimpleExcelFactory implements ExcelFactory {
+
+    //用户自定义函数
+//////////////////////////////////////////////////////////////////////////////////////
+
+    @Override
+    public void validExcel(Workbook workBook, Excel excel) throws Exception {
+    }
+
+    @Override
+    public boolean skipBlank() {
+        return false;
+    }
+
+//////////////////////////////////////////////////////////////////////////////////////
+
 
     private final static Map<Class, ExcelBeanMetaData> cache = new ConcurrentHashMap<>();
 
@@ -87,13 +99,6 @@ public class SimpleExcelFactory implements ExcelFactory {
         return map;
     }
 
-    public void validExcel(Workbook workBook, Excel excel) throws Exception {
-    }
-
-    @Override
-    public boolean skipBlank() {
-        return false;
-    }
 
     private final <T> Object convert(String rawValue, ColumnWrap cw, ExcelPos pos, Class<T> tClass) throws ExcelDataWrongException {
         Column column = cw.getColumn();
@@ -104,7 +109,11 @@ public class SimpleExcelFactory implements ExcelFactory {
         //有自定义的转换器
         if (converterClass != EmptyConverter.class) {
             Converter converter = BeanUtils.instantiateClass(converterClass);
-            return converter.convert(rawValue);
+            try {
+                converter.convert(rawValue);
+            } catch (Exception e1) {
+                throw new ExcelDataWrongException(e1.getMessage(), rawValue, column.headerName(), pos);
+            }
         }
         //复用Web请求参数解析服务
         if (tClass != String.class) {
@@ -157,8 +166,9 @@ public class SimpleExcelFactory implements ExcelFactory {
                 cell.setCellType(CellType.STRING); //统一设置为string
                 String rawValue = cell.getStringCellValue(); //单元格值
                 Object parsedValue;
+                ExcelPos dataPos = new ExcelPos(cell.getRowIndex(), cell.getColumnIndex());
                 //转换数据
-                parsedValue = convert(rawValue, cw, pos, tClass);
+                parsedValue = convert(rawValue, cw, dataPos, tClass);
                 Method setMethod = findMethod(targetClass, column.setter(), tClass);
                 invokeMethod(setMethod, bean, parsedValue);
                 evictBlank = false;

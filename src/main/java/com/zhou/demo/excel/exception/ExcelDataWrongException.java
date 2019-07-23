@@ -3,6 +3,10 @@ package com.zhou.demo.excel.exception;
 import com.zhou.demo.excel.factory.ExcelPos;
 import lombok.Data;
 
+/**
+ * Excel数据错误异常，例如将"abc"传入Integer字段
+ * 异常中包含1)数据的位置信息 2)异常数据
+ */
 @Data
 public class ExcelDataWrongException extends Exception {
 
