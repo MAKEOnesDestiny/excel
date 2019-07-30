@@ -1,29 +1,29 @@
 package com.zhou.demo.excel.controller;
 
 
-import com.zhou.demo.excel.annotation.Excel;
 import com.zhou.demo.excel.bean.TestBean;
 import com.zhou.demo.excel.exception.ExcelDataWrongException;
 import com.zhou.demo.excel.factory.ExcelFactory;
+import com.zhou.demo.excel.factory.VersionExcelFactory;
 import com.zhou.demo.excel.factory.impl.SimpleExcelFactory;
+import com.zhou.demo.excel.factory.impl.VersionExcelImplFactory;
 import com.zhou.demo.excel.utils.TokenUtil;
 import lombok.extern.log4j.Log4j2;
-import org.apache.poi.ss.usermodel.Workbook;
 import org.springframework.stereotype.Controller;
-import org.springframework.util.ReflectionUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import javax.servlet.http.Part;
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.io.OutputStream;
-import java.lang.reflect.Field;
 import java.util.List;
-import java.util.Vector;
 
 @Controller
 @RequestMapping("/test/controller")
@@ -33,18 +33,31 @@ public class TestController {
     @RequestMapping("/upload")
     @ResponseBody
     public Object upload(HttpServletRequest request
-            , @RequestParam(value = "preview", required = false, defaultValue = "false") boolean preview) throws Exception {
-        Part part = request.getPart("file");
+            , @RequestParam(value = "preview", required = false, defaultValue = "false") boolean preview
+            , @RequestPart(value = "file") Part part) throws Exception {
         ExcelFactory factory = new SimpleExcelFactory() {
+            @Override
+            public boolean skipBlank() {
+                return false;
+            }
+        };
+        /*VersionExcelFactory factory = new VersionExcelImplFactory() {
             @Override
             public boolean skipBlank() {
                 return true;
             }
-        };
+        };*/
         List list = null;
         try {
-            list = factory.toBean(part.getInputStream(), TestBean.class);
+            InputStream is = part.getInputStream();
+            byte[] bytes = new byte[is.available()];
+            is.read(bytes);
+            ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
+            list = factory.toBean(bis, TestBean.class);
+            bis.reset();
+            list = factory.toBean(bis, TestBean.class);
         } catch (ExcelDataWrongException e) {
+            e.printStackTrace();
             return e.toString();
         }
         if (preview) {
@@ -83,11 +96,13 @@ public class TestController {
         return result;
     }
 
+/*
     @RequestMapping("/session")
     @ResponseBody
     public String session(HttpServletRequest request) throws Exception {
         return request.getSession().getId();
     }
+*/
 
 
     public static void main(String[] args) throws ClassNotFoundException {
@@ -100,8 +115,6 @@ public class TestController {
                 log.info("找到class:"+c.getCanonicalName());
 
             }
-
-
         }*/
 
     }

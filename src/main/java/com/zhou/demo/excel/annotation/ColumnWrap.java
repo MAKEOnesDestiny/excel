@@ -1,5 +1,6 @@
 package com.zhou.demo.excel.annotation;
 
+import com.zhou.demo.excel.factory.impl.DefaultExcelFactory;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
@@ -12,6 +13,9 @@ public class ColumnWrap {
     private Column column;
 
     private Field field;
+
+    private DefaultExcelFactory.ValidPipeLine pipeLine;
+
 
     @Override
     public boolean equals(Object obj) {

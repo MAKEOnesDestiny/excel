@@ -37,7 +37,9 @@ public class ExcelDataWrongException extends Exception {
 
     @Override
     public String toString() {
-        return "[数据列:"+columnName+"]"+excelPos + "处数据错误,错误数据为:" + invalidData;
+        String result = "[" + excelPos.getSheet().getSheetName() + "]--->" + excelPos + "处数据错误,错误数据为:" + invalidData;
+        if (getMessage() != null) result = result + "(" + getMessage() + ")";
+        return result;
     }
 
 

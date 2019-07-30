@@ -2,19 +2,28 @@ package com.zhou.demo.excel.bean;
 
 import com.zhou.demo.excel.annotation.Column;
 import com.zhou.demo.excel.annotation.Excel;
+import com.zhou.demo.excel.annotation.Version;
+import com.zhou.demo.excel.annotation.valid.DataRangeLimitValidator;
+import com.zhou.demo.excel.annotation.valid.NotEmptyValidator;
 import com.zhou.demo.excel.factory.converter.TestConverter;
 import lombok.Data;
 
 import java.math.BigDecimal;
 
-@Excel
+@Excel(sheetName = "商品映射维护模板导出")
 @Data
 public class TestBean {
 
-    @Column(headerName = "价格",convert = TestConverter.class)
+    @Version({
+            @Column(headerName = "价格", convert = TestConverter.class, version = 1)
+    })
+    @Column(headerName = "价格", convert = TestConverter.class, version = 1)
     private BigDecimal price;
 
-    @Column(headerName = "平台")
+    @Version({
+            @Column(headerName = "平台", version = 1)
+    })
+    @Column(headerName = "平台", valid = {NotEmptyValidator.class, DataRangeLimitValidator.class})
     private int platform;
 
     @Column(headerName = "OMS商家编码"/*,setter = "setOmsBusinessCode"*/)

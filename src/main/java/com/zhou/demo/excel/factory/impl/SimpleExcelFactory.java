@@ -1,59 +1,46 @@
 package com.zhou.demo.excel.factory.impl;
 
-import com.zhou.demo.excel.annotation.Column;
-import com.zhou.demo.excel.annotation.ColumnWrap;
-import com.zhou.demo.excel.annotation.Excel;
-import com.zhou.demo.excel.annotation.ExcelBeanMetaData;
+import com.zhou.demo.excel.annotation.*;
+import com.zhou.demo.excel.annotation.valid.NopValidator;
 import com.zhou.demo.excel.config.ApplicationContextAccessor;
 import com.zhou.demo.excel.exception.ExcelDataWrongException;
-import com.zhou.demo.excel.factory.ExcelFactory;
 import com.zhou.demo.excel.factory.ExcelPos;
 import com.zhou.demo.excel.factory.converter.EmptyConverter;
 import lombok.extern.log4j.Log4j2;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
-import org.apache.poi.ss.usermodel.*;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
 import org.springframework.beans.BeanUtils;
 import org.springframework.core.convert.ConversionException;
 import org.springframework.core.convert.ConversionService;
 import org.springframework.core.convert.converter.Converter;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static com.zhou.demo.excel.utils.BeanUtil.findSetMethod;
 import static com.zhou.demo.excel.utils.SelfAnnotationUtil.getMemberValuesMap;
-import static org.springframework.util.ReflectionUtils.findMethod;
-import static org.springframework.util.ReflectionUtils.invokeMethod;
 
 @Log4j2
-public class SimpleExcelFactory implements ExcelFactory {
+public class SimpleExcelFactory extends DefaultExcelFactory {
 
-    //用户自定义函数
-//////////////////////////////////////////////////////////////////////////////////////
-
-    @Override
-    public void validExcel(Workbook workBook, Excel excel) throws Exception {
+    protected Sheet getSheet(Excel excel, Workbook workbook) {
+        String sName = excel.sheetName();
+        Sheet sheet;
+        if (!sName.equals("")) {
+            sheet = workbook.getSheet(sName);
+        } else {
+            sheet = super.getSheet(excel, workbook);
+        }
+        return sheet;
     }
 
-    @Override
-    public boolean skipBlank() {
-        return false;
-    }
-
-//////////////////////////////////////////////////////////////////////////////////////
-
-
-    private final static Map<Class, ExcelBeanMetaData> cache = new ConcurrentHashMap<>();
-
-    public ExcelPos findPos(String s, Row row) {
+    protected ExcelPos findPos(String s, Row row) {
         short fNum = row.getFirstCellNum();
         short lNum = row.getLastCellNum();
         if (fNum < 0 || lNum < 0) return null;
@@ -61,19 +48,11 @@ public class SimpleExcelFactory implements ExcelFactory {
             Cell cell = row.getCell(i);
             //todo:添加表头校验
             String value = cell.getStringCellValue();
-            if (s.equals(value)) return new ExcelPos(row.getRowNum(), i);
+            if (s.equals(value)) return new ExcelPos(row.getRowNum(), i, row.getSheet());
         }
         return null;
     }
 
-    /**
-     * 根据表头解析和bean的映射关系
-     *
-     * @param row   表头行
-     * @param clazz
-     * @param <T>
-     * @return
-     */
     public <T> Map<ColumnWrap, ExcelPos> resolveMapping(Row row, Class<T> clazz) {
         Map<ColumnWrap, ExcelPos> map = new HashMap();
         Field[] fields = clazz.getDeclaredFields();
@@ -90,8 +69,10 @@ public class SimpleExcelFactory implements ExcelFactory {
                     //如果用户没有自定义setter,则使用默认的setter方法
                     valuesMap.put("setter", setMethodName);
                 }
+                Class[] validClass = c.valid();
+                ValidPipeLine validPipeLine = initPipeLine(validClass);
                 //todo:添加全局缓存避免重复解析
-                map.put(new ColumnWrap(c, f), pos);
+                map.put(new ColumnWrap(c, f, validPipeLine), pos);
             }
             //else skip
         }
@@ -99,22 +80,36 @@ public class SimpleExcelFactory implements ExcelFactory {
         return map;
     }
 
+    private ValidPipeLine initPipeLine(Class[] validClass) {
+        ValidPipeLine first = null;
+        ValidPipeLine before = null;
+        for (Class c : validClass) {
+            if (c.getClass().equals(NopValidator.class)) continue;
+            Validator validator = (Validator) BeanUtils.instantiateClass(c);
+            ValidPipeLine validPipeLine = new ValidPipeLine(validator);
+            validPipeLine.setPrev(before);
+            if (first == null) first = validPipeLine;
+            if (before != null) before.setNext(validPipeLine);
+            before = validPipeLine;
+        }
+        return first;
+    }
 
-    private final <T> Object convert(String rawValue, ColumnWrap cw, ExcelPos pos, Class<T> tClass) throws ExcelDataWrongException {
+    @Override
+    public final <T> Object convert(String rawValue, ColumnWrap cw, ExcelPos pos, Class<T> tClass) throws ExcelDataWrongException {
         Column column = cw.getColumn();
         ConversionService conversionService = ApplicationContextAccessor.getApplicationContext().getBean(ConversionService.class);
-
-        Object parsedValue;
         Class<? extends Converter> converterClass = column.convert();
         //有自定义的转换器
         if (converterClass != EmptyConverter.class) {
             Converter converter = BeanUtils.instantiateClass(converterClass);
             try {
-                converter.convert(rawValue);
+                return converter.convert(rawValue);
             } catch (Exception e1) {
                 throw new ExcelDataWrongException(e1.getMessage(), rawValue, column.headerName(), pos);
             }
         }
+        Object parsedValue;
         //复用Web请求参数解析服务
         if (tClass != String.class) {
             if (conversionService.canConvert(String.class, tClass)) {
@@ -132,51 +127,8 @@ public class SimpleExcelFactory implements ExcelFactory {
         return parsedValue;
     }
 
-    @Override
-    public <T> List<T> toBean(InputStream inputStream, Class<T> targetClass) throws Exception {
-        Excel excel = targetClass.getAnnotation(Excel.class);
-        if (excel == null) throw new RuntimeException(targetClass.getCanonicalName() + "没有配置@Excel注解!");
 
-        Workbook wb = new XSSFWorkbook(inputStream);
-        validExcel(wb, excel);
-
-        Sheet sheet = wb.getSheetAt(excel.sheet());
-        List<T> result = new ArrayList<>();
-        Map<ColumnWrap, ExcelPos> mapping = null;
-
-        for (int i = excel.offset(); i <= sheet.getLastRowNum(); i++) {
-            //表头校验
-            if (i == excel.offset()) {
-                mapping = resolveMapping(sheet.getRow(i), targetClass);
-                continue;
-            }
-            //处理数据
-            Row row = sheet.getRow(i);
-            T bean = targetClass.newInstance();
-            boolean evictBlank = true;  //剔除全空行
-            for (Map.Entry<ColumnWrap, ExcelPos> e : mapping.entrySet()) {
-                ColumnWrap cw = e.getKey();
-                Column column = cw.getColumn();
-                ExcelPos pos = e.getValue();
-                Class tClass = cw.getField().getType();
-
-                Cell cell = row.getCell(pos.getColumnIndex());
-                if (cell == null) continue; //代表单元格为空
-                if (cell.getCellTypeEnum() == CellType.BLANK && skipBlank()) continue;
-                cell.setCellType(CellType.STRING); //统一设置为string
-                String rawValue = cell.getStringCellValue(); //单元格值
-                Object parsedValue;
-                ExcelPos dataPos = new ExcelPos(cell.getRowIndex(), cell.getColumnIndex());
-                //转换数据
-                parsedValue = convert(rawValue, cw, dataPos, tClass);
-                Method setMethod = findMethod(targetClass, column.setter(), tClass);
-                invokeMethod(setMethod, bean, parsedValue);
-                evictBlank = false;
-            }
-            if (!evictBlank) result.add(bean);
-        }
-        return result;
-    }
+    private final static Map<Class, ExcelBeanMetaData> cache = new ConcurrentHashMap<>();
 
     @Override
     public <T> Workbook generateEmptyExcel(Class<T> targetClass) throws IOException {
@@ -214,7 +166,7 @@ public class SimpleExcelFactory implements ExcelFactory {
             Field f = fields[i];
             Column c = f.getAnnotation(Column.class);
             if (c != null) {
-                cws[i] = new ColumnWrap(c, f);
+                cws[i] = new ColumnWrap(c, f, null);
             }
             //else skip
         }

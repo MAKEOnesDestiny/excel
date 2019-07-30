@@ -14,6 +14,6 @@ public interface ExcelFactory extends ExcelFactoryConfig {
 
     <T> Workbook generateEmptyExcel(Class<T> targetClass) throws IOException;
 
-    void validExcel(Workbook workBook, Excel excel) throws Exception;
+//    void validExcel(Workbook workBook, Excel excel) throws Exception;
 
 }
