@@ -28,6 +28,11 @@ public @interface Column {
     String setter() default "";
 
     /**
+     * 是否必须存在
+     */
+    boolean required() default true;
+
+    /**
      * 转换器
      */
     Class<? extends Converter> convert() default EmptyConverter.class;

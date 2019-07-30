@@ -70,7 +70,10 @@ public abstract class DefaultExcelFactory implements ExcelFactory {
         for (int i = excel.offset(); i <= sheet.getLastRowNum(); i++) {
             //表头校验
             if (i == excel.offset()) {
-                mapping = resolveMapping(sheet.getRow(i), targetClass);
+                Row row = sheet.getRow(i);
+                if (row == null)
+                    throw new RuntimeException("[" + excel.sheetName() + "]--->第" + (excel.offset() + 1) + "行处表头信息错误");
+                mapping = resolveMapping(row, targetClass);
                 continue;
             }
             //处理数据

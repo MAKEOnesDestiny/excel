@@ -58,8 +58,9 @@ public class SimpleExcelFactory extends DefaultExcelFactory {
         Field[] fields = clazz.getDeclaredFields();
         for (Field f : fields) {
             Column c = f.getAnnotation(Column.class);
+            if (c == null) continue;
             ExcelPos pos;
-            if (c != null && (pos = findPos(c.headerName(), row)) != null) {
+            if ((pos = findPos(c.headerName(), row)) != null) {
                 //获取set方法的名称
                 String setMethodName = findSetMethod(f, true);
                 String initSetMethodName = c.setter();
@@ -73,10 +74,12 @@ public class SimpleExcelFactory extends DefaultExcelFactory {
                 ValidPipeLine validPipeLine = initPipeLine(validClass);
                 //todo:添加全局缓存避免重复解析
                 map.put(new ColumnWrap(c, f, validPipeLine), pos);
+            } else {
+                boolean required = c.required();
+                if (required)
+                    throw new RuntimeException("[" + row.getSheet().getSheetName() + "]--->无法找到[" + c.headerName() + "]列,请检查该列是否存在");
             }
-            //else skip
         }
-//        cache.put(clazz, map);
         return map;
     }
 
