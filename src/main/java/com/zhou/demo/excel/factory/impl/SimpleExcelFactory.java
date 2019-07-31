@@ -46,7 +46,6 @@ public class SimpleExcelFactory extends DefaultExcelFactory {
         if (fNum < 0 || lNum < 0) return null;
         for (int i = fNum; i < lNum; i++) {
             Cell cell = row.getCell(i);
-            //todo:添加表头校验
             String value = cell.getStringCellValue();
             if (s.equals(value)) return new ExcelPos(row.getRowNum(), i, row.getSheet());
         }

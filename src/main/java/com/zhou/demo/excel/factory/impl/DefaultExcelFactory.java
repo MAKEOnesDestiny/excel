@@ -28,8 +28,13 @@ public abstract class DefaultExcelFactory implements ExcelFactory {
 //////////////////////////////////////////////////////////////////////////////////////
 
     public void validExcel(Workbook workBook, Excel excel) throws Exception {
+        //do nothing
     }
 
+    /**
+     * 配置项,是否忽略空白行
+     * @return
+     */
     @Override
     public boolean skipBlank() {
         return false;
@@ -39,6 +44,16 @@ public abstract class DefaultExcelFactory implements ExcelFactory {
         return workbook.getSheetAt(excel.sheet());
     }
 
+    /**
+     * 用于扩展数据转换的操作
+     * @param rawValue
+     * @param cw
+     * @param pos
+     * @param tClass
+     * @param <T>
+     * @return
+     * @throws ExcelDataWrongException
+     */
     protected <T> Object convert(String rawValue, ColumnWrap cw, ExcelPos pos, Class<T> tClass) throws ExcelDataWrongException {
         return rawValue;
     }
@@ -56,11 +71,10 @@ public abstract class DefaultExcelFactory implements ExcelFactory {
 //////////////////////////////////////////////////////////////////////////////////////
 
     @Override
-    public <T> List<T> toBean(InputStream inputStream, Class<T> targetClass) throws Exception {
+    public <T> List<T> toBean(Workbook wb, Class<T> targetClass) throws Exception {
         Excel excel = targetClass.getAnnotation(Excel.class);
         if (excel == null) throw new RuntimeException(targetClass.getCanonicalName() + "没有配置@Excel注解!");
 
-        Workbook wb = new XSSFWorkbook(inputStream);
         validExcel(wb, excel);
 
         Sheet sheet = getSheet(excel, wb);
@@ -108,6 +122,13 @@ public abstract class DefaultExcelFactory implements ExcelFactory {
             if (!evictBlank) result.add(bean);
         }
         return result;
+    }
+
+    @Override
+    public <T> List<T> toBean(InputStream inputStream, Class<T> targetClass) throws Exception {
+        inputStream.reset();
+        Workbook wb = new XSSFWorkbook(inputStream);
+        return toBean(wb, targetClass);
     }
 
     protected boolean validBeforeConvert(String rawValue, ColumnWrap cw, ExcelPos pos, Class tClass) throws Exception {
