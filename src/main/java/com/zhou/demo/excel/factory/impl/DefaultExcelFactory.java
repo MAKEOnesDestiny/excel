@@ -33,6 +33,7 @@ public abstract class DefaultExcelFactory implements ExcelFactory {
 
     /**
      * 配置项,是否忽略空白行
+     *
      * @return
      */
     @Override
@@ -46,6 +47,7 @@ public abstract class DefaultExcelFactory implements ExcelFactory {
 
     /**
      * 用于扩展数据转换的操作
+     *
      * @param rawValue
      * @param cw
      * @param pos
@@ -92,6 +94,7 @@ public abstract class DefaultExcelFactory implements ExcelFactory {
             }
             //处理数据
             Row row = sheet.getRow(i);
+            if (row == null) continue;
             T bean = targetClass.newInstance();
             boolean evictBlank = true;  //剔除全空行
             for (Map.Entry<ColumnWrap, ExcelPos> e : mapping.entrySet()) {
