@@ -15,6 +15,7 @@ import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -94,7 +95,7 @@ public abstract class DefaultExcelFactory implements ExcelFactory {
             }
             //处理数据
             Row row = sheet.getRow(i);
-            if (row == null) continue;
+            if (row == null || isRowAllBlank(row)) continue;
             T bean = targetClass.newInstance();
             boolean evictBlank = true;  //剔除全空行
             for (Map.Entry<ColumnWrap, ExcelPos> e : mapping.entrySet()) {
@@ -132,6 +133,19 @@ public abstract class DefaultExcelFactory implements ExcelFactory {
         inputStream.reset();
         Workbook wb = new XSSFWorkbook(inputStream);
         return toBean(wb, targetClass);
+    }
+
+    //判断是否为全空行，全空行为无效行
+    private boolean isRowAllBlank(Row row) {
+        int first = row.getFirstCellNum();
+        int last = row.getLastCellNum();
+        for (int i = first; i <= last; i++) {
+            Cell c = row.getCell(i);
+            if (c != null && c.getCellTypeEnum() != CellType.BLANK) {
+                return false;
+            }
+        }
+        return true;
     }
 
     protected boolean validBeforeConvert(String rawValue, ColumnWrap cw, ExcelPos pos, Class tClass) throws Exception {
