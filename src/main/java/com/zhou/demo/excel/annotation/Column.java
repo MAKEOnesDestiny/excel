@@ -25,6 +25,9 @@ public @interface Column {
      */
     String headerName();
 
+    /**
+     * 字段对应的setter方法,如果有非setXxx()形式的set方法,则可以配置此项
+     */
     String setter() default "";
 
     /**

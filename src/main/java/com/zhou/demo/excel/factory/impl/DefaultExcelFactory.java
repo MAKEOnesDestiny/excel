@@ -82,6 +82,9 @@ public abstract class DefaultExcelFactory implements ExcelFactory {
 
         Sheet sheet = getSheet(excel, wb);
         List<T> result = new ArrayList<>();
+        if (sheet == null) {
+            log.debug("can't find excel:" + excel.sheetName());
+        }
         Map<ColumnWrap, ExcelPos> mapping = null;
 
         for (int i = excel.offset(); i <= sheet.getLastRowNum(); i++) {
