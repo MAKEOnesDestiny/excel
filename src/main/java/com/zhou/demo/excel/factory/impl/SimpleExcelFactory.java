@@ -82,7 +82,7 @@ public class SimpleExcelFactory extends DefaultExcelFactory {
         return map;
     }
 
-    private ValidPipeLine initPipeLine(Class[] validClass) {
+    protected ValidPipeLine initPipeLine(Class[] validClass) {
         ValidPipeLine first = null;
         ValidPipeLine before = null;
         for (Class c : validClass) {

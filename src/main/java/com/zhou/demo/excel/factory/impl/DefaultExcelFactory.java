@@ -2,6 +2,7 @@ package com.zhou.demo.excel.factory.impl;
 
 import com.zhou.demo.excel.annotation.*;
 import com.zhou.demo.excel.exception.ExcelDataWrongException;
+import com.zhou.demo.excel.factory.Callback;
 import com.zhou.demo.excel.factory.ExcelFactory;
 import com.zhou.demo.excel.factory.ExcelPos;
 import lombok.Data;
@@ -25,6 +26,7 @@ import static org.springframework.util.ReflectionUtils.invokeMethod;
 
 @Log4j2
 public abstract class DefaultExcelFactory implements ExcelFactory {
+
     //用户自定义函数
 //////////////////////////////////////////////////////////////////////////////////////
 
@@ -73,6 +75,8 @@ public abstract class DefaultExcelFactory implements ExcelFactory {
 
 //////////////////////////////////////////////////////////////////////////////////////
 
+//    private Callback
+
     @Override
     public <T> List<T> toBean(Workbook wb, Class<T> targetClass) throws Exception {
         Excel excel = targetClass.getAnnotation(Excel.class);
@@ -107,7 +111,7 @@ public abstract class DefaultExcelFactory implements ExcelFactory {
                 ExcelPos pos = e.getValue();
                 Class tClass = cw.getField().getType();
 
-                Cell cell = row.getCell(pos.getColumnIndex());
+                Cell cell = row.getCell(pos.getColumnIndex(), Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                 if (cell == null) continue; //代表单元格为空
                 if (cell.getCellTypeEnum() == CellType.BLANK && skipBlank()) continue;
                 cell.setCellType(CellType.STRING); //统一设置为string
@@ -126,7 +130,10 @@ public abstract class DefaultExcelFactory implements ExcelFactory {
                 invokeMethod(setMethod, bean, parsedValue);
                 evictBlank = false;
             }
-            if (!evictBlank) result.add(bean);
+            if (!evictBlank) {
+
+                result.add(bean);
+            }
         }
         return result;
     }

@@ -6,6 +6,8 @@ import com.zhou.demo.excel.annotation.Version;
 import com.zhou.demo.excel.factory.ExcelPos;
 import com.zhou.demo.excel.factory.VersionExcelFactory;
 import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import java.io.InputStream;
 import java.lang.reflect.Field;
@@ -28,13 +30,20 @@ public class VersionExcelImplFactory extends SimpleExcelFactory implements Versi
 
     @Override
     public <T> List<T> toBean(InputStream inputStream, Class<T> targetClass, final int version) throws Exception {
+        inputStream.reset();
+        Workbook wb = new XSSFWorkbook(inputStream);
+        return toBean(wb, targetClass, version);
+    }
+
+    @Override
+    public <T> List<T> toBean(Workbook workbook, Class<T> targetClass, int version) throws Exception {
         if (version < 0) {
             if (version == -1) throw new IllegalArgumentException("使用@Version时,其成员@Column必须配置version且version非负");
             else
                 throw new IllegalArgumentException("错误的版本信息:" + version + ",版本信息必须>=0");
         }
         VERSION_TL.set(version);
-        return toBean(inputStream, targetClass);
+        return toBean(workbook, targetClass);
     }
 
     @Override
@@ -71,7 +80,9 @@ public class VersionExcelImplFactory extends SimpleExcelFactory implements Versi
                     //如果用户没有自定义setter,则使用默认的setter方法
                     valuesMap.put("setter", setMethodName);
                 }
-                map.put(new ColumnWrap(findColumn, f,null), pos);
+                Class[] validClass = findColumn.valid();
+                ValidPipeLine validPipeLine = initPipeLine(validClass);
+                map.put(new ColumnWrap(findColumn, f, validPipeLine), pos);
             }
         }
         return map;

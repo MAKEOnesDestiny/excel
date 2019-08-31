@@ -41,4 +41,12 @@ public class TestBean {
     @Column(headerName = "过期产品")
     private boolean deprecated;
 
+    public static void main(String[] args) {
+        BigDecimal value = new BigDecimal("123");
+        if(new BigDecimal(value.intValue()).compareTo(value) != 0){
+            System.out.println(1);
+        }
+
+    }
+
 }
