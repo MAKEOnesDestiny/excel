@@ -1,8 +1,10 @@
 package com.zhou.demo.excel.annotation;
 
 import com.zhou.demo.excel.annotation.valid.NopValidator;
+import com.zhou.demo.excel.factory.converter.Converter;
 import com.zhou.demo.excel.factory.converter.EmptyConverter;
-import org.springframework.core.convert.converter.Converter;
+import com.zhou.demo.excel.factory.formatter.Formatter;
+import com.zhou.demo.excel.factory.formatter.impl.DefaultFormatter;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -25,10 +27,9 @@ public @interface Column {
      */
     String headerName();
 
-    /**
-     * 字段对应的setter方法,如果有非setXxx()形式的set方法,则可以配置此项
-     */
     String setter() default "";
+
+    String getter() default "";
 
     /**
      * 是否必须存在
@@ -42,7 +43,15 @@ public @interface Column {
 
     /**
      * 校验器
+     * 前置校验器的顺序即为数组中的顺序,越靠前的校验器越先被执行
+     * 后置校验器的顺序与前置校验器相反
      */
     Class<? extends Validator>[] valid() default {NopValidator.class};
+
+    /**
+     * 对数据进行格式化或者去除空格等标准化操作,生成excel时有效，上传excel时此字段无用
+     * @return
+     */
+    Class<? extends Formatter> format() default DefaultFormatter.class;
 
 }

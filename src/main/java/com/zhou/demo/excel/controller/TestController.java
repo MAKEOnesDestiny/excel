@@ -73,19 +73,16 @@ public class TestController {
         String classInStr = "com.zhou.demo.excel.bean." + bean;
         Class clazz = Class.forName(classInStr);
         if (clazz == null) throw new RuntimeException("错误的参数:" + bean);
-        log.info("找到class:" + clazz.getCanonicalName());
         ExcelFactory factory = new SimpleExcelFactory();
         response.setContentType("application/vnd.ms-excel;charset=UTF-8");
         response.setHeader("Content-Disposition", "attachment;filename=file.xls");
         OutputStream os = response.getOutputStream();
-        factory.generateEmptyExcel(clazz).write(os);
     }
 
     @RequestMapping("/preview")
     @ResponseBody
     public Object preview(@RequestParam("preCode") String preCode, HttpServletRequest request) throws Exception {
         if (StringUtils.isEmpty(preCode)) {
-            log.debug("preCode为空");
             return null;
         }
         HttpSession session = request.getSession();

@@ -5,6 +5,7 @@ import com.zhou.demo.excel.annotation.valid.NopValidator;
 import com.zhou.demo.excel.config.ApplicationContextAccessor;
 import com.zhou.demo.excel.exception.ExcelDataWrongException;
 import com.zhou.demo.excel.factory.ExcelPos;
+import com.zhou.demo.excel.factory.converter.Converter;
 import com.zhou.demo.excel.factory.converter.EmptyConverter;
 import lombok.extern.log4j.Log4j2;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
@@ -15,7 +16,6 @@ import org.apache.poi.ss.usermodel.Workbook;
 import org.springframework.beans.BeanUtils;
 import org.springframework.core.convert.ConversionException;
 import org.springframework.core.convert.ConversionService;
-import org.springframework.core.convert.converter.Converter;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -122,7 +122,7 @@ public class SimpleExcelFactory extends DefaultExcelFactory {
                     throw new ExcelDataWrongException(e1.getMessage(), rawValue, column.headerName(), pos);
                 }
             } else {
-                log.info("无法转换[{}]为{}类型", rawValue, tClass.getCanonicalName());
+                log.info("无法转换[{" + rawValue + "}]为{" + tClass.getCanonicalName() + "}类型");
                 parsedValue = null;
             }
         } else parsedValue = rawValue;
@@ -132,7 +132,6 @@ public class SimpleExcelFactory extends DefaultExcelFactory {
 
     private final static Map<Class, ExcelBeanMetaData> cache = new ConcurrentHashMap<>();
 
-    @Override
     public <T> Workbook generateEmptyExcel(Class<T> targetClass) throws IOException {
         Workbook wb = new HSSFWorkbook();
         Excel excel = targetClass.getAnnotation(Excel.class);

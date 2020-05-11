@@ -6,7 +6,6 @@ import lombok.NoArgsConstructor;
 import org.apache.poi.ss.usermodel.Sheet;
 
 @Data
-//@AllArgsConstructor
 @NoArgsConstructor
 public class ExcelPos {
 
@@ -23,19 +22,37 @@ public class ExcelPos {
     /**
      * sheet名称
      */
-//    private String sheetName;
+    /*private String sheetName;*/
 
     private Sheet sheet;
-
-/*    public ExcelPos(Integer rowIndex, Integer columnIndex, String sheetName) {
-        this.rowIndex = rowIndex;
-        this.columnIndex = columnIndex;
-        this.sheetName = sheetName;
-    }*/
 
     public ExcelPos(Integer rowIndex, Integer columnIndex, Sheet sheet) {
         this.rowIndex = rowIndex;
         this.columnIndex = columnIndex;
+        this.sheet = sheet;
+    }
+
+    public Integer getRowIndex() {
+        return rowIndex;
+    }
+
+    public void setRowIndex(Integer rowIndex) {
+        this.rowIndex = rowIndex;
+    }
+
+    public Integer getColumnIndex() {
+        return columnIndex;
+    }
+
+    public void setColumnIndex(Integer columnIndex) {
+        this.columnIndex = columnIndex;
+    }
+
+    public Sheet getSheet() {
+        return sheet;
+    }
+
+    public void setSheet(Sheet sheet) {
         this.sheet = sheet;
     }
 
