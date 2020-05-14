@@ -12,27 +12,39 @@ public class ExcelDataWrongException extends Exception {
 
     private ExcelPos excelPos;
 
+    //may be null
     private String columnName;
 
     private Object invalidData;
 
     public ExcelDataWrongException(String columnName, ExcelPos excelPos) {
         super();
+        if(excelPos==null) throw new IllegalArgumentException("excelPos不能为空");
         this.excelPos = excelPos;
         this.columnName = columnName;
     }
 
     public ExcelDataWrongException(String message, String columnName, ExcelPos excelPos) {
         super(message);
+        if(excelPos==null) throw new IllegalArgumentException("excelPos不能为空");
         this.excelPos = excelPos;
         this.columnName = columnName;
     }
 
     public ExcelDataWrongException(String message, Object invalidData, String columnName, ExcelPos excelPos) {
         super(message);
+        if(excelPos==null) throw new IllegalArgumentException("excelPos不能为空");
         this.invalidData = invalidData;
         this.excelPos = excelPos;
         this.columnName = columnName;
+    }
+
+    public ExcelDataWrongException(String message, Object invalidData, ExcelPos excelPos) {
+        super(message);
+        if(excelPos==null) throw new IllegalArgumentException("excelPos不能为空");
+        this.invalidData = invalidData;
+        this.excelPos = excelPos;
+        this.columnName = null;
     }
 
     @Override

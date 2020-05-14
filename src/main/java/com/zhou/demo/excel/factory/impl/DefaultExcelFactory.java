@@ -1,6 +1,7 @@
 package com.zhou.demo.excel.factory.impl;
 
 import com.zhou.demo.excel.annotation.*;
+import com.zhou.demo.excel.annotation.valid.NopValidator;
 import com.zhou.demo.excel.bean.DataWrap;
 import com.zhou.demo.excel.exception.ExcelDataWrongException;
 import com.zhou.demo.excel.factory.Callback;
@@ -249,7 +250,8 @@ public abstract class DefaultExcelFactory implements ExcelFactory {
         for (; ; ) {
             boolean result;
             try {
-                result = line.validator.validBefore(rawValue);
+                Validator validator = line.validator;
+                result = (validator == null) ? true : validator.validBefore(rawValue);
             } catch (Exception e) {
                 throw new ExcelDataWrongException(e.getMessage(), rawValue, cw.getColumn().headerName(), pos);
             }
@@ -273,7 +275,8 @@ public abstract class DefaultExcelFactory implements ExcelFactory {
         for (; ; ) {
             boolean result;
             try {
-                result = line.validator.validAfter(convertedValue);
+                Validator validator = line.validator;
+                result = (validator == null) ? true : validator.validAfter(convertedValue);
             } catch (Exception e) {
                 throw new ExcelDataWrongException(e.getMessage(), rawValue, cw.getColumn().headerName(), pos);
             }
@@ -285,7 +288,7 @@ public abstract class DefaultExcelFactory implements ExcelFactory {
     }
 
     //判断是否为全空行，全空行为无效行
-    private boolean isRowAllBlank(Row row) {
+    protected boolean isRowAllBlank(Row row) {
         int first = row.getFirstCellNum();
         int last = row.getLastCellNum();
         if (first < 0 || first < 0) {
@@ -301,6 +304,15 @@ public abstract class DefaultExcelFactory implements ExcelFactory {
     }
 
     public static final class ValidPipeLine {
+
+        public static final ValidPipeLine EMPTY_VALID_PIPELINE;
+
+        static {
+            EMPTY_VALID_PIPELINE = new ValidPipeLine(null);
+            EMPTY_VALID_PIPELINE.setNext(null);
+            EMPTY_VALID_PIPELINE.setPrev(null);
+        }
+
         volatile ValidPipeLine next;
 
         volatile ValidPipeLine prev;
@@ -375,11 +387,11 @@ public abstract class DefaultExcelFactory implements ExcelFactory {
     @Override
     public <T> Workbook generateExcel(List<T> list, Class<T> targetClass) throws IOException {
         Workbook wb = new XSSFWorkbook();
-        generateSheet(list,targetClass,wb);
+        generateSheet(list, targetClass, wb);
         return wb;
     }
 
-    public <T> void generateSheet(List<T> list, Class<T> targetClass,Workbook wb) throws IOException {
+    public <T> void generateSheet(List<T> list, Class<T> targetClass, Workbook wb) throws IOException {
         Excel excel = targetClass.getAnnotation(Excel.class);
         String sheetName = excel.sheetName();
         Sheet sheet = wb.createSheet(sheetName.equals("") ? "sheet1" : sheetName);

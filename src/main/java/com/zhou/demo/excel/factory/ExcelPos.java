@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.apache.poi.ss.usermodel.Sheet;
+import org.springframework.util.Assert;
 
 @Data
 @NoArgsConstructor
@@ -19,14 +20,12 @@ public class ExcelPos {
      */
     private Integer columnIndex;
 
-    /**
-     * sheet名称
-     */
-    /*private String sheetName;*/
-
     private Sheet sheet;
 
     public ExcelPos(Integer rowIndex, Integer columnIndex, Sheet sheet) {
+        Assert.notNull(rowIndex,"rowIndex不能为null");
+        Assert.notNull(columnIndex,"columnIndex不能为null");
+        Assert.notNull(sheet,"sheet不能为null");
         this.rowIndex = rowIndex;
         this.columnIndex = columnIndex;
         this.sheet = sheet;

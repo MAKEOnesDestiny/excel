@@ -30,6 +30,10 @@ import java.util.List;
 @Log4j2
 public class TestController {
 
+    public TestController() {
+        System.out.println("我是testController");
+    }
+
     @RequestMapping("/upload")
     @ResponseBody
     public Object upload(HttpServletRequest request
@@ -53,8 +57,6 @@ public class TestController {
             byte[] bytes = new byte[is.available()];
             is.read(bytes);
             ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
-            list = factory.toBean(bis, TestBean.class);
-            bis.reset();
             list = factory.toBean(bis, TestBean.class);
         } catch (ExcelDataWrongException e) {
             e.printStackTrace();

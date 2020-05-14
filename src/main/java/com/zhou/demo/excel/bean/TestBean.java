@@ -23,7 +23,7 @@ public class TestBean {
             @Column(headerName = "平台", version = 1)
     })
     @Column(headerName = "平台", valid = {NotEmptyValidator.class})
-    private int platform;
+    private String platform;
 
     @Column(headerName = "OMS商家编码"/*,setter = "setOmsBusinessCode"*/)
     private String omsBusinessCode;
