@@ -19,6 +19,7 @@ import static com.zhou.demo.excel.utils.BeanUtil.findSetMethod;
 import static com.zhou.demo.excel.utils.SelfAnnotationUtil.getMemberValuesMap;
 
 //Thread-safe
+//using thread-local
 public class VersionExcelImplFactory extends SimpleExcelFactory implements VersionExcelFactory {
 
     private static final ThreadLocal<Integer> VERSION_TL = new ThreadLocal<Integer>() {

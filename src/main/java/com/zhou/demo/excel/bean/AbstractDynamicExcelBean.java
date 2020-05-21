@@ -7,23 +7,21 @@ import java.util.Map;
 
 public abstract class AbstractDynamicExcelBean implements DynamicExcelBean {
 
-//    private Map<DynamicExcelHeaders.Header, Cell> resolvedMap = new HashMap<>();
-
-    private Map<DynamicExcelHeaders.Header, CellWrap> resolvedMap = new HashMap<>();
+    private Map<Header, CellWrap> resolvedMap = new HashMap<>();
 
     @Override
-    public Cell getCellByHeader(DynamicExcelHeaders.Header header) {
+    public Cell getCellByHeader(Header header) {
         return resolvedMap.get(header).getCell();
     }
 
     @Override
-    public String getContentByHeader(DynamicExcelHeaders.Header header) {
+    public String getContentByHeader(Header header) {
         Cell cell = getCellByHeader(header);
         return cell == null ? null : cell.getStringCellValue();
     }
 
     @Override
-    public Map<DynamicExcelHeaders.Header, CellWrap> getResolvedMap() {
+    public Map<Header, CellWrap> getResolvedMap() {
         return resolvedMap;
     }
 }

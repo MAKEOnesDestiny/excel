@@ -23,24 +23,5 @@ public interface DynamicExcelHeaders {
     Integer getHeadersRowNum();
 
 
-    //inner interface
-    interface Header<T>{
-
-        ExcelPos getHeaderPos();
-
-        String getHeaderInStr();
-
-        Class<T> getTargetClass();
-
-        void setTargetClass(Class<T> targetClass);
-
-        void setConverter(Class<? extends Converter> converter);
-
-        Class<? extends Converter> getConverter();
-
-        void setValidators(Class<? extends Validator> ... validators);
-
-        Class<? extends Validator>[] getValidators();
-    }
 
 }

@@ -1,14 +1,24 @@
 package com.zhou.demo.excel.controller;
 
 
+import com.zhou.demo.excel.annotation.valid.NotBlankValidator;
+import com.zhou.demo.excel.annotation.valid.TimeScopeValidator;
+import com.zhou.demo.excel.bean.DynamicExcelBean;
+import com.zhou.demo.excel.bean.DynamicExcelHeaders;
+import com.zhou.demo.excel.bean.Header;
 import com.zhou.demo.excel.bean.TestBean;
 import com.zhou.demo.excel.exception.ExcelDataWrongException;
+import com.zhou.demo.excel.factory.DynamicExcelFactory;
 import com.zhou.demo.excel.factory.ExcelFactory;
 import com.zhou.demo.excel.factory.VersionExcelFactory;
+import com.zhou.demo.excel.factory.impl.SimpleDynamicExcelFactory;
 import com.zhou.demo.excel.factory.impl.SimpleExcelFactory;
 import com.zhou.demo.excel.factory.impl.VersionExcelImplFactory;
 import com.zhou.demo.excel.utils.TokenUtil;
 import lombok.extern.log4j.Log4j2;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -51,6 +61,7 @@ public class TestController {
                 return true;
             }
         };*/
+        DynamicExcelFactory dFactory = new SimpleDynamicExcelFactory();
         List list = null;
         try {
             InputStream is = part.getInputStream();
@@ -58,6 +69,24 @@ public class TestController {
             is.read(bytes);
             ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
             list = factory.toBean(bis, TestBean.class);
+
+            bis.reset();
+            Workbook wb = new XSSFWorkbook(bis);
+            Sheet sheet = wb.getSheet("值班表");
+            DynamicExcelHeaders headers = dFactory.getHeadersFromExcel(sheet, 0);
+            List<Header> headerList = headers.getHeaders();
+            for (Header h : headerList) {
+                if ("时间".equals(h.getHeaderInStr())) {
+                    h.setValidators(NotBlankValidator.class, TimeScopeValidator.class);
+                    continue;
+                }
+                if ("备注".equals(h.getHeaderInStr())) {
+                    continue;
+                }
+//                h.setValidators(NotBlankValidator.class);
+            }
+            List<DynamicExcelBean> toBean = dFactory.toDynamicBean(sheet, headers);
+            System.out.println();
         } catch (ExcelDataWrongException e) {
             e.printStackTrace();
             return e.toString();

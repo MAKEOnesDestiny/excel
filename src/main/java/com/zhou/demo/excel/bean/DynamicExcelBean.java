@@ -2,15 +2,14 @@ package com.zhou.demo.excel.bean;
 
 import org.apache.poi.ss.usermodel.Cell;
 
-import java.util.List;
 import java.util.Map;
 
 public interface DynamicExcelBean {
 
-    Cell getCellByHeader(DynamicExcelHeaders.Header header);
+    Cell getCellByHeader(Header header);
 
-    String getContentByHeader(DynamicExcelHeaders.Header header);
+    String getContentByHeader(Header header);
 
-    Map<DynamicExcelHeaders.Header, CellWrap> getResolvedMap();
+    Map<Header, CellWrap> getResolvedMap();
 
 }

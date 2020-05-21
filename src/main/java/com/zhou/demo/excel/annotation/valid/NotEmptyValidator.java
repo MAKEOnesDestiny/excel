@@ -14,7 +14,4 @@ public class NotEmptyValidator implements Validator {
         else return true;
     }
 
-    public <T> boolean validAfter(Object convertedValue, ColumnWrap cw, ExcelPos pos, Class<T> tClass) throws Exception {
-        return true;
-    }
 }

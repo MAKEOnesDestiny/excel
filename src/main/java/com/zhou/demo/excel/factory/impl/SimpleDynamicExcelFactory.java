@@ -1,8 +1,8 @@
 package com.zhou.demo.excel.factory.impl;
 
-import com.zhou.demo.excel.annotation.ColumnWrap;
 import com.zhou.demo.excel.annotation.Validator;
 import com.zhou.demo.excel.bean.*;
+import com.zhou.demo.excel.bean.Header;
 import com.zhou.demo.excel.exception.ExcelDataWrongException;
 import com.zhou.demo.excel.factory.DynamicExcelFactory;
 import com.zhou.demo.excel.factory.ExcelPos;
@@ -21,7 +21,7 @@ public class SimpleDynamicExcelFactory extends SimpleExcelFactory implements Dyn
 
     @Override
     public List<DynamicExcelBean> toDynamicBean(Sheet sheet, DynamicExcelHeaders headers) throws Exception {
-        List<DynamicExcelHeaders.Header> headerList = headers.getHeaders();
+        List<Header> headerList = headers.getHeaders();
         List<DynamicExcelBean> result = new ArrayList<>();
         Integer headersRowNum = headers.getHeadersRowNum();
         for (int i = 0; i <= sheet.getLastRowNum(); i++) {
@@ -33,7 +33,7 @@ public class SimpleDynamicExcelFactory extends SimpleExcelFactory implements Dyn
             Row row = sheet.getRow(i);
             if (row == null || isRowAllBlank(row)) continue;
             boolean evictBlank = true;  //剔除全空行
-            for (DynamicExcelHeaders.Header h : headerList) {
+            for (Header h : headerList) {
                 Cell cell = row.getCell(h.getHeaderPos().getColumnIndex(), Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                 if ((cell.getCellTypeEnum() == CellType.BLANK && skipBlank())) {
                     //nop
@@ -43,24 +43,23 @@ public class SimpleDynamicExcelFactory extends SimpleExcelFactory implements Dyn
                     Object parsedValue;
                     ExcelPos dataPos = new ExcelPos(cell.getRowIndex(), cell.getColumnIndex(), row.getSheet());
                     //转换前校验
-                    if (!validBeforeConvert(rawValue, h))
-                        throw new ExcelDataWrongException("Excel数据校验失败", rawValue, h.getHeaderInStr(), h.getHeaderPos());
+                    if (!validBeforeConvert(rawValue, dataPos, h))
+                        throw new ExcelDataWrongException("Excel数据校验失败", rawValue, h.getHeaderInStr(), dataPos);
                     //转换数据
                     parsedValue = convert0(rawValue, h.getConverter(), dataPos, h.getTargetClass());
-                    if (!validAfterConvert(parsedValue, h))
-                        throw new ExcelDataWrongException("Excel数据校验失败", rawValue, h.getHeaderInStr(), h.getHeaderPos());
-                    Map<DynamicExcelHeaders.Header, CellWrap> map = bean.getResolvedMap();
+                    if (!validAfterConvert(parsedValue, dataPos, h))
+                        throw new ExcelDataWrongException("Excel数据校验失败", rawValue, h.getHeaderInStr(), dataPos);
+                    Map<Header, CellWrap> map = bean.getResolvedMap();
                     map.put(h, new CellWrap(parsedValue, h, cell));
                     evictBlank = false;
                 }
-                if (!evictBlank) result.add(bean);
             }
+            if (!evictBlank) result.add(bean);
         }
         return result;
     }
 
-    protected boolean validBeforeConvert(String rawValue, DynamicExcelHeaders.Header header) throws Exception {
-        ExcelPos pos = header.getHeaderPos();
+    protected boolean validBeforeConvert(String rawValue, ExcelPos dataPos, Header header) throws Exception {
         Class<Validator>[] validators = header.getValidators();
         if (validators == null) {
             return true;
@@ -68,10 +67,10 @@ public class SimpleDynamicExcelFactory extends SimpleExcelFactory implements Dyn
         for (Class<Validator> validatorClass : validators) {
             boolean result;
             try {
-                Validator validator =  BeanUtils.instantiateClass(validatorClass);
+                Validator validator = BeanUtils.instantiateClass(validatorClass);
                 result = (validator == null) ? true : validator.validBefore(rawValue);
             } catch (Exception e) {
-                throw new ExcelDataWrongException(e.getMessage(), rawValue, header.getHeaderInStr(), pos);
+                throw new ExcelDataWrongException(e.getMessage(), rawValue, header.getHeaderInStr(), dataPos);
             }
             if (result == true)
                 continue;
@@ -81,20 +80,19 @@ public class SimpleDynamicExcelFactory extends SimpleExcelFactory implements Dyn
         return true;
     }
 
-    protected boolean validAfterConvert(Object convertedValue, DynamicExcelHeaders.Header header) throws Exception {
-        ExcelPos pos = header.getHeaderPos();
+    protected boolean validAfterConvert(Object convertedValue, ExcelPos dataPos, Header header) throws Exception {
         Class<Validator>[] validators = header.getValidators();
         //null代表没有配置校验,默认通过
         if (validators == null) {
             return true;
         }
-        for (Class<Validator> validatorClass  : validators) {
+        for (Class<Validator> validatorClass : validators) {
             boolean result;
             try {
-                Validator validator =  BeanUtils.instantiateClass(validatorClass);
+                Validator validator = BeanUtils.instantiateClass(validatorClass);
                 result = (validator == null) ? true : validator.validAfter(convertedValue);
             } catch (Exception e) {
-                throw new ExcelDataWrongException(e.getMessage(), convertedValue, header.getHeaderInStr(), pos);
+                throw new ExcelDataWrongException(e.getMessage(), convertedValue, header.getHeaderInStr(), dataPos);
             }
             if (result == true)
                 continue;
@@ -115,18 +113,22 @@ public class SimpleDynamicExcelFactory extends SimpleExcelFactory implements Dyn
             throw new IllegalArgumentException("sheet[" + sheet.getSheetName() + "]表头不存在");
         }
         short lastCellNum = row.getLastCellNum();
+        List<Header> headerList = new ArrayList<>();
         for (int i = 0; i <= lastCellNum; i++) {
             Cell cell = row.getCell(i, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-            if(cell==null) continue;
-            if (cell.getCellTypeEnum() == CellType.BLANK && skipBlank()){
+            if (cell == null) continue;
+            if (cell.getCellTypeEnum() == CellType.BLANK && skipBlank()) {
                 continue;
             }
             cell.setCellType(CellType.STRING); //统一设置为string
-            String rawValue = cell.getStringCellValue(); //单元格值
-//            if(r)
-
+            String cellValue = cell.getStringCellValue();
+            if(StringUtils.isNotBlank(cellValue)) {
+                Header header = new DefaultHeader(cell, String.class);
+                headerList.add(header);
+            }
         }
-        return null;
+        DynamicExcelHeaders headers = new DefaultDynamicExcelHeaders(headerPosition, headerList);
+        return headers;
     }
 
     //cglib动态生成字段
