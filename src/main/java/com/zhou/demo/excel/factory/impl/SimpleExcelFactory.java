@@ -100,10 +100,10 @@ public class SimpleExcelFactory extends DefaultExcelFactory {
     @Override
     public <T> Object convert(String rawValue, ColumnWrap cw, ExcelPos pos, Class<T> tClass) throws ExcelDataWrongException {
         Column column = cw.getColumn();
-        return convert0(rawValue, column.convert(), pos, tClass);
+        return convert0(rawValue, column.convert(), pos, column.headerName(), tClass);
     }
 
-    protected final <T> Object convert0(String rawValue, Class<? extends Converter> converterClazz, ExcelPos pos, Class<T> tClass) throws ExcelDataWrongException {
+    protected final <T> Object convert0(String rawValue, Class<? extends Converter> converterClazz, ExcelPos pos, String columnName, Class<T> tClass) throws ExcelDataWrongException {
         ConversionService conversionService = ApplicationContextAccessor.getApplicationContext().getBean(ConversionService.class);
         Class<? extends Converter> converterClass = converterClazz;
         //有自定义的转换器
@@ -112,7 +112,7 @@ public class SimpleExcelFactory extends DefaultExcelFactory {
             try {
                 return converter.convert(rawValue);
             } catch (Exception e1) {
-                throw new ExcelDataWrongException(e1.getMessage(), rawValue, pos);
+                throw new ExcelDataWrongException(e1.getMessage(), (Object) rawValue, columnName, pos);
             }
         }
         Object parsedValue;
@@ -123,7 +123,7 @@ public class SimpleExcelFactory extends DefaultExcelFactory {
                     parsedValue = conversionService.convert(rawValue, tClass);
                 } catch (ConversionException e1) {
                     //发生转换异常
-                    throw new ExcelDataWrongException(e1.getMessage(), rawValue, pos);
+                    throw new ExcelDataWrongException(e1.getMessage(), (Object) rawValue, pos);
                 }
             } else {
                 log.info("无法转换[{" + rawValue + "}]为{" + tClass.getCanonicalName() + "}类型");

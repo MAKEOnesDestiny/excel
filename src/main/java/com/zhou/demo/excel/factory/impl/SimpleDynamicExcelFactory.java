@@ -2,12 +2,14 @@ package com.zhou.demo.excel.factory.impl;
 
 import com.zhou.demo.excel.annotation.Validator;
 import com.zhou.demo.excel.bean.*;
-import com.zhou.demo.excel.bean.Header;
 import com.zhou.demo.excel.exception.ExcelDataWrongException;
 import com.zhou.demo.excel.factory.DynamicExcelFactory;
 import com.zhou.demo.excel.factory.ExcelPos;
 import org.apache.commons.lang.StringUtils;
-import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellType;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
 import org.springframework.beans.BeanUtils;
 import org.springframework.cglib.beans.BeanGenerator;
 
@@ -46,7 +48,7 @@ public class SimpleDynamicExcelFactory extends SimpleExcelFactory implements Dyn
                     if (!validBeforeConvert(rawValue, dataPos, h))
                         throw new ExcelDataWrongException("Excel数据校验失败", rawValue, h.getHeaderInStr(), dataPos);
                     //转换数据
-                    parsedValue = convert0(rawValue, h.getConverter(), dataPos, h.getTargetClass());
+                    parsedValue = convert0(rawValue, h.getConverter(), dataPos, h.getHeaderInStr(), h.getTargetClass());
                     if (!validAfterConvert(parsedValue, dataPos, h))
                         throw new ExcelDataWrongException("Excel数据校验失败", rawValue, h.getHeaderInStr(), dataPos);
                     Map<Header, CellWrap> map = bean.getResolvedMap();
@@ -122,7 +124,7 @@ public class SimpleDynamicExcelFactory extends SimpleExcelFactory implements Dyn
             }
             cell.setCellType(CellType.STRING); //统一设置为string
             String cellValue = cell.getStringCellValue();
-            if(StringUtils.isNotBlank(cellValue)) {
+            if (StringUtils.isNotBlank(cellValue)) {
                 Header header = new DefaultHeader(cell, String.class);
                 headerList.add(header);
             }

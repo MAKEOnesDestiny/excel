@@ -7,6 +7,8 @@ import com.zhou.demo.excel.bean.DynamicExcelBean;
 import com.zhou.demo.excel.bean.DynamicExcelHeaders;
 import com.zhou.demo.excel.bean.Header;
 import com.zhou.demo.excel.bean.TestBean;
+import com.zhou.demo.excel.config.ParamConst;
+import com.zhou.demo.excel.config.ParameterPassHelp;
 import com.zhou.demo.excel.exception.ExcelDataWrongException;
 import com.zhou.demo.excel.factory.DynamicExcelFactory;
 import com.zhou.demo.excel.factory.ExcelFactory;
@@ -44,6 +46,30 @@ public class TestController {
         System.out.println("我是testController");
     }
 
+    @RequestMapping("/testParamPass")
+    @ResponseBody
+    public Object testParamPass(HttpServletRequest request
+            , @RequestParam(value = "preview", required = false, defaultValue = "false") boolean preview
+            , @RequestPart(value = "file") Part part) throws Exception {
+        InputStream is = part.getInputStream();
+        byte[] bytes = new byte[is.available()];
+        is.read(bytes);
+        ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
+        Workbook wb = new XSSFWorkbook(bis);
+
+        ParameterPassHelp.setParam(ParamConst.LENGTH_LIMIT_PARAM,5);
+
+        ExcelFactory ef = new SimpleExcelFactory();
+        List<TestBean> testBeans;
+        try {
+             testBeans = ef.toBean(wb, TestBean.class);
+        }catch (Exception e){
+            return e.toString();
+        }
+        return testBeans;
+    }
+
+
     @RequestMapping("/upload")
     @ResponseBody
     public Object upload(HttpServletRequest request
@@ -71,8 +97,10 @@ public class TestController {
             list = factory.toBean(bis, TestBean.class);
 
             bis.reset();
+
             Workbook wb = new XSSFWorkbook(bis);
             Sheet sheet = wb.getSheet("值班表");
+
             DynamicExcelHeaders headers = dFactory.getHeadersFromExcel(sheet, 0);
             List<Header> headerList = headers.getHeaders();
             for (Header h : headerList) {

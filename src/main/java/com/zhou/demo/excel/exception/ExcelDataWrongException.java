@@ -24,13 +24,6 @@ public class ExcelDataWrongException extends Exception {
         this.columnName = columnName;
     }
 
-    public ExcelDataWrongException(String message, String columnName, ExcelPos excelPos) {
-        super(message);
-        if(excelPos==null) throw new IllegalArgumentException("excelPos不能为空");
-        this.excelPos = excelPos;
-        this.columnName = columnName;
-    }
-
     public ExcelDataWrongException(String message, Object invalidData, String columnName, ExcelPos excelPos) {
         super(message);
         if(excelPos==null) throw new IllegalArgumentException("excelPos不能为空");

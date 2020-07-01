@@ -8,4 +8,6 @@ public interface ExcelFactoryConfig {
      */
     boolean skipBlank();
 
+    default boolean catchAllException(){return false;};
+
 }
