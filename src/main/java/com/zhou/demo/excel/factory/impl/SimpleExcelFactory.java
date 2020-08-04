@@ -1,12 +1,29 @@
 package com.zhou.demo.excel.factory.impl;
 
-import com.zhou.demo.excel.annotation.*;
+import static com.zhou.demo.excel.utils.BeanUtil.findSetMethod;
+import static com.zhou.demo.excel.utils.SelfAnnotationUtil.getMemberValuesMap;
+
+import com.zhou.demo.excel.annotation.ArgsValidtors;
+import com.zhou.demo.excel.annotation.Column;
+import com.zhou.demo.excel.annotation.ColumnWrap;
+import com.zhou.demo.excel.annotation.Excel;
+import com.zhou.demo.excel.annotation.ExcelBeanMetaData;
+import com.zhou.demo.excel.annotation.Validator;
 import com.zhou.demo.excel.annotation.valid.NopValidator;
 import com.zhou.demo.excel.config.ApplicationContextAccessor;
+import com.zhou.demo.excel.exception.ExcelConfigException;
 import com.zhou.demo.excel.exception.ExcelDataWrongException;
+import com.zhou.demo.excel.exception.ExcelFrameException;
 import com.zhou.demo.excel.factory.ExcelPos;
 import com.zhou.demo.excel.factory.converter.Converter;
 import com.zhou.demo.excel.factory.converter.EmptyConverter;
+import com.zhou.demo.excel.utils.ConversionUtil;
+import java.io.IOException;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import lombok.extern.log4j.Log4j2;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.Cell;
@@ -16,15 +33,6 @@ import org.apache.poi.ss.usermodel.Workbook;
 import org.springframework.beans.BeanUtils;
 import org.springframework.core.convert.ConversionException;
 import org.springframework.core.convert.ConversionService;
-
-import java.io.IOException;
-import java.lang.reflect.Field;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
-import static com.zhou.demo.excel.utils.BeanUtil.findSetMethod;
-import static com.zhou.demo.excel.utils.SelfAnnotationUtil.getMemberValuesMap;
 
 @Log4j2
 public class SimpleExcelFactory extends DefaultExcelFactory {
@@ -43,11 +51,15 @@ public class SimpleExcelFactory extends DefaultExcelFactory {
     protected ExcelPos findPos(String s, Row row) {
         short fNum = row.getFirstCellNum();
         short lNum = row.getLastCellNum();
-        if (fNum < 0 || lNum < 0) return null;
+        if (fNum < 0 || lNum < 0) {
+            return null;
+        }
         for (int i = fNum; i < lNum; i++) {
             Cell cell = row.getCell(i);
             String value = cell.getStringCellValue();
-            if (s.equals(value)) return new ExcelPos(row.getRowNum(), i, row.getSheet());
+            if (s.equals(value)) {
+                return new ExcelPos(row.getRowNum(), i, row.getSheet());
+            }
         }
         return null;
     }
@@ -57,7 +69,9 @@ public class SimpleExcelFactory extends DefaultExcelFactory {
         Field[] fields = clazz.getDeclaredFields();
         for (Field f : fields) {
             Column c = f.getAnnotation(Column.class);
-            if (c == null) continue;
+            if (c == null) {
+                continue;
+            }
             ExcelPos pos;
             if ((pos = findPos(c.headerName(), row)) != null) {
                 //获取set方法的名称
@@ -69,14 +83,25 @@ public class SimpleExcelFactory extends DefaultExcelFactory {
                     //如果用户没有自定义setter,则使用默认的setter方法
                     valuesMap.put("setter", setMethodName);
                 }
-                Class[] validClass = c.valid();
-                ValidPipeLine validPipeLine = initPipeLine(validClass);
+                ValidPipeLine validPipeLine = null;
+                if (c.argsValid() != null && c.argsValid().length > 0) {
+                    try {
+                        validPipeLine = initPipeLine(c.argsValid());
+                    } catch (NoSuchMethodException e) {
+                        throw new ExcelConfigException("no avaiable constructor for class " + clazz);
+                    }
+                } else {
+                    Class[] validClass = c.valid();
+                    validPipeLine = initPipeLine(validClass);
+                }
                 //todo:添加全局缓存避免重复解析
                 map.put(new ColumnWrap(c, f, validPipeLine), pos);
             } else {
                 boolean required = c.required();
-                if (required)
-                    throw new RuntimeException("[" + row.getSheet().getSheetName() + "]--->无法找到[" + c.headerName() + "]列,请检查该列是否存在");
+                if (required) {
+                    throw new RuntimeException(
+                            "[" + row.getSheet().getSheetName() + "]--->无法找到[" + c.headerName() + "]列,请检查该列是否存在");
+                }
             }
         }
         return map;
@@ -86,25 +111,75 @@ public class SimpleExcelFactory extends DefaultExcelFactory {
         ValidPipeLine first = null;
         ValidPipeLine before = null;
         for (Class c : validClass) {
-            if (c.getClass().equals(NopValidator.class)) continue;
+            if (c.getClass().equals(NopValidator.class)) {
+                continue;
+            }
             Validator validator = (Validator) BeanUtils.instantiateClass(c);
             ValidPipeLine validPipeLine = new ValidPipeLine(validator);
             validPipeLine.setPrev(before);
-            if (first == null) first = validPipeLine;
-            if (before != null) before.setNext(validPipeLine);
+            if (first == null) {
+                first = validPipeLine;
+            }
+            if (before != null) {
+                before.setNext(validPipeLine);
+            }
             before = validPipeLine;
         }
         return first;
     }
 
+
+    protected ValidPipeLine initPipeLine(ArgsValidtors[] validtors) throws NoSuchMethodException {
+        ValidPipeLine first = null;
+        ValidPipeLine before = null;
+        for (ArgsValidtors avs : validtors) {
+            Class<? extends Validator> c = avs.validator();
+            if (c.getClass().equals(NopValidator.class)) {
+                continue;
+            }
+            String[] args = avs.args();
+            Class[] argsClass = avs.argsClass();
+            if (args.length != argsClass.length) {
+                throw new ExcelFrameException("The length of args not equals to the length of argsClass;args:" + args +
+                                                      ",argsClass:" + argsClass);
+            }
+            Validator validator = null;
+            if (args == null || args.length == 0) {
+                //empty-constructor if no args
+                validator = BeanUtils.instantiateClass(c);
+            } else {
+                Constructor<? extends Validator> cs = c.getConstructor(argsClass);
+                ConversionService conversionService = ApplicationContextAccessor.getApplicationContext()
+                        .getBean(ConversionService.class);
+                validator = BeanUtils
+                        .instantiateClass(cs, ConversionUtil
+                                .convertWithConversionService(conversionService, args, argsClass));
+            }
+            ValidPipeLine validPipeLine = new ValidPipeLine(validator);
+            validPipeLine.setPrev(before);
+            if (first == null) {
+                first = validPipeLine;
+            }
+            if (before != null) {
+                before.setNext(validPipeLine);
+            }
+            before = validPipeLine;
+        }
+        return first;
+    }
+
+
     @Override
-    public <T> Object convert(String rawValue, ColumnWrap cw, ExcelPos pos, Class<T> tClass) throws ExcelDataWrongException {
+    public <T> Object convert(String rawValue, ColumnWrap cw, ExcelPos pos, Class<T> tClass)
+            throws ExcelDataWrongException {
         Column column = cw.getColumn();
         return convert0(rawValue, column.convert(), pos, column.headerName(), tClass);
     }
 
-    protected final <T> Object convert0(String rawValue, Class<? extends Converter> converterClazz, ExcelPos pos, String columnName, Class<T> tClass) throws ExcelDataWrongException {
-        ConversionService conversionService = ApplicationContextAccessor.getApplicationContext().getBean(ConversionService.class);
+    protected final <T> Object convert0(String rawValue, Class<? extends Converter> converterClazz, ExcelPos pos,
+                                        String columnName, Class<T> tClass) throws ExcelDataWrongException {
+        ConversionService conversionService = ApplicationContextAccessor.getApplicationContext()
+                .getBean(ConversionService.class);
         Class<? extends Converter> converterClass = converterClazz;
         //有自定义的转换器
         if (converterClass != EmptyConverter.class) {
@@ -129,7 +204,9 @@ public class SimpleExcelFactory extends DefaultExcelFactory {
                 log.info("无法转换[{" + rawValue + "}]为{" + tClass.getCanonicalName() + "}类型");
                 parsedValue = null;
             }
-        } else parsedValue = rawValue;
+        } else {
+            parsedValue = rawValue;
+        }
         return parsedValue;
     }
 
@@ -145,7 +222,9 @@ public class SimpleExcelFactory extends DefaultExcelFactory {
         ExcelBeanMetaData excelBeanMetaData = getExcelBeanMeta(targetClass);
         ColumnWrap[] cws = excelBeanMetaData.getColumnWraps();
         for (int i = 0; i < cws.length; i++) {
-            if (cws == null) continue;
+            if (cws == null) {
+                continue;
+            }
             ColumnWrap cw = cws[i];
             Column c = cw.getColumn();
             Cell cell = row.createCell(i);

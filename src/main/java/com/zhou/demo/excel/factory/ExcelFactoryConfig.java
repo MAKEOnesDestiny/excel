@@ -1,5 +1,10 @@
 package com.zhou.demo.excel.factory;
 
+/**
+ * @see ExcelFactoryConfigInner
+ */
+
+@Deprecated
 public interface ExcelFactoryConfig {
 
     /**
@@ -7,7 +12,5 @@ public interface ExcelFactoryConfig {
      * @return true->忽略  false->不忽略
      */
     boolean skipBlank();
-
-    default boolean catchAllException(){return false;};
 
 }

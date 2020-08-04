@@ -12,10 +12,8 @@ import com.zhou.demo.excel.config.ParameterPassHelp;
 import com.zhou.demo.excel.exception.ExcelDataWrongException;
 import com.zhou.demo.excel.factory.DynamicExcelFactory;
 import com.zhou.demo.excel.factory.ExcelFactory;
-import com.zhou.demo.excel.factory.VersionExcelFactory;
 import com.zhou.demo.excel.factory.impl.SimpleDynamicExcelFactory;
 import com.zhou.demo.excel.factory.impl.SimpleExcelFactory;
-import com.zhou.demo.excel.factory.impl.VersionExcelImplFactory;
 import com.zhou.demo.excel.utils.TokenUtil;
 import lombok.extern.log4j.Log4j2;
 import org.apache.poi.ss.usermodel.Sheet;
@@ -114,7 +112,6 @@ public class TestController {
 //                h.setValidators(NotBlankValidator.class);
             }
             List<DynamicExcelBean> toBean = dFactory.toDynamicBean(sheet, headers);
-            System.out.println();
         } catch (ExcelDataWrongException e) {
             e.printStackTrace();
             return e.toString();
@@ -152,27 +149,7 @@ public class TestController {
         return result;
     }
 
-/*
-    @RequestMapping("/session")
-    @ResponseBody
-    public String session(HttpServletRequest request) throws Exception {
-        return request.getSession().getId();
-    }
-*/
-
-
     public static void main(String[] args) throws ClassNotFoundException {
-        /*ClassLoader cl = TestBean.class.getClassLoader();
-        Field f = ReflectionUtils.findField(cl.getClass(), "classes");
-        f.setAccessible(true);
-        Vector<Class> o = (Vector) ReflectionUtils.getField(f, cl);
-        for (Class c:o) {
-            if(c.getName().endsWith("."+"TestBean"){
-                log.info("找到class:"+c.getCanonicalName());
-
-            }
-        }*/
-
     }
 
 

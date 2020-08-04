@@ -1,55 +1,76 @@
 package com.zhou.demo.excel.factory.impl;
 
-import com.zhou.demo.excel.annotation.*;
-import com.zhou.demo.excel.annotation.valid.NopValidator;
+import static org.springframework.util.ReflectionUtils.findMethod;
+import static org.springframework.util.ReflectionUtils.invokeMethod;
+
+import com.zhou.demo.excel.annotation.Column;
+import com.zhou.demo.excel.annotation.ColumnWrap;
+import com.zhou.demo.excel.annotation.Excel;
+import com.zhou.demo.excel.annotation.ExcelBeanMetaData;
+import com.zhou.demo.excel.annotation.Validator;
 import com.zhou.demo.excel.bean.DataWrap;
 import com.zhou.demo.excel.exception.ExcelDataWrongException;
-import com.zhou.demo.excel.factory.Callback;
 import com.zhou.demo.excel.factory.ExcelFactory;
+import com.zhou.demo.excel.factory.ExcelFactoryConfigInner;
 import com.zhou.demo.excel.factory.ExcelPos;
 import com.zhou.demo.excel.factory.formatter.Formatter;
-import lombok.Data;
-import lombok.extern.log4j.Log4j2;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.poi.hssf.usermodel.HSSFWorkbook;
-import org.apache.poi.ss.usermodel.*;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.slf4j.Logger;
-import org.springframework.beans.BeanUtils;
-import org.springframework.util.ReflectionUtils;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-
-import static org.springframework.util.ReflectionUtils.findMethod;
-import static org.springframework.util.ReflectionUtils.invokeMethod;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellType;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.beans.BeanUtils;
+import org.springframework.util.ReflectionUtils;
 
 
 @SuppressWarnings("all")
 public abstract class DefaultExcelFactory implements ExcelFactory {
+
     public static final Log log = LogFactory.getLog(DefaultExcelFactory.class.getName());
 
-    //用户自定义函数
-//////////////////////////////////////////////////////////////////////////////////////
+    private ExcelFactoryConfigInner config;
+
+    @Override
+    public ExcelFactoryConfigInner getConfig() {
+        return config;
+    }
+
+    @Override
+    public void setConfig(ExcelFactoryConfigInner config) {
+        this.config = config;
+    }
 
     public void validExcel(Workbook workBook, Excel excel) throws Exception {
     }
 
     @Override
     public boolean skipBlank() {
-        return false;
+        if (getConfig() == null) {
+            return false;
+        } else {
+            return getConfig().isSkipBlank();
+        }
     }
 
+    //用户自定义函数
+    //////////////////////////////////////////////////////////////////////////////////////
     protected Sheet getSheet(Excel excel, Workbook workbook) {
         return workbook.getSheetAt(excel.sheet());
     }
 
-    protected <T> Object convert(String rawValue, ColumnWrap cw, ExcelPos pos, Class<T> tClass) throws ExcelDataWrongException {
+    protected <T> Object convert(String rawValue, ColumnWrap cw, ExcelPos pos, Class<T> tClass)
+            throws ExcelDataWrongException {
         return rawValue;
     }
 
@@ -59,11 +80,10 @@ public abstract class DefaultExcelFactory implements ExcelFactory {
      * @param row   表头行
      * @param clazz
      * @param <T>
-     * @return
      */
     public abstract <T> Map<ColumnWrap, ExcelPos> resolveMapping(Row row, Class<T> clazz);
 
-//////////////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////////////////
 
     @Override
     public <T> List<T> toBean(InputStream inputStream, Class<T> targetClass) throws Exception {
@@ -75,7 +95,9 @@ public abstract class DefaultExcelFactory implements ExcelFactory {
     @Override
     public <T> List<T> toBean(Workbook wb, Class<T> targetClass) throws Exception {
         Excel excel = targetClass.getAnnotation(Excel.class);
-        if (excel == null) throw new RuntimeException(targetClass.getCanonicalName() + "没有配置@Excel注解!");
+        if (excel == null) {
+            throw new RuntimeException(targetClass.getCanonicalName() + "没有配置@Excel注解!");
+        }
         validExcel(wb, excel);
 
         Sheet sheet = getSheet(excel, wb);
@@ -90,14 +112,17 @@ public abstract class DefaultExcelFactory implements ExcelFactory {
             //表头校验
             if (i == excel.offset()) {
                 Row row = sheet.getRow(i);
-                if (row == null)
+                if (row == null) {
                     throw new RuntimeException("[" + excel.sheetName() + "]--->第" + (excel.offset() + 1) + "行处表头信息错误");
+                }
                 mapping = resolveMapping(row, targetClass);
                 continue;
             }
             //处理数据
             Row row = sheet.getRow(i);
-            if (row == null || isRowAllBlank(row)) continue;
+            if (row == null || isRowAllBlank(row)) {
+                continue;
+            }
             T bean = targetClass.newInstance();
             boolean evictBlank = true;  //剔除全空行
             for (Map.Entry<ColumnWrap, ExcelPos> e : mapping.entrySet()) {
@@ -107,24 +132,32 @@ public abstract class DefaultExcelFactory implements ExcelFactory {
                 Class tClass = cw.getField().getType();
 
                 Cell cell = row.getCell(pos.getColumnIndex(), Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-                if (cell == null) continue; //代表单元格为空
-                if (cell.getCellTypeEnum() == CellType.BLANK && skipBlank()) continue;
+                if (cell == null) {
+                    continue; //代表单元格为空
+                }
+                if (cell.getCellTypeEnum() == CellType.BLANK && skipBlank()) {
+                    continue;
+                }
                 cell.setCellType(CellType.STRING); //统一设置为string
                 String rawValue = cell.getStringCellValue(); //单元格值
                 Object parsedValue;
                 ExcelPos dataPos = new ExcelPos(cell.getRowIndex(), cell.getColumnIndex(), row.getSheet());
                 //转换前校验
-                if (!validBeforeConvert(rawValue, cw, dataPos, tClass))
+                if (!validBeforeConvert(rawValue, cw, dataPos, tClass)) {
                     throw new ExcelDataWrongException("Excel数据校验失败", rawValue, column.headerName(), pos);
+                }
                 //转换数据
                 parsedValue = convert(rawValue, cw, dataPos, tClass);
-                if (!validAfterConvert(parsedValue, rawValue, cw, pos, tClass))
+                if (!validAfterConvert(parsedValue, rawValue, cw, pos, tClass)) {
                     throw new ExcelDataWrongException("Excel数据校验失败", rawValue, column.headerName(), pos);
+                }
                 Method setMethod = findMethod(targetClass, column.setter(), tClass);
                 invokeMethod(setMethod, bean, parsedValue);
                 evictBlank = false;
             }
-            if (!evictBlank) result.add(bean);
+            if (!evictBlank) {
+                result.add(bean);
+            }
         }
         return result;
     }
@@ -132,7 +165,9 @@ public abstract class DefaultExcelFactory implements ExcelFactory {
     @Override
     public <T> Map<Row, T> toBeanWithPos(Workbook wb, Class<T> targetClass) throws Exception {
         Excel excel = targetClass.getAnnotation(Excel.class);
-        if (excel == null) throw new RuntimeException(targetClass.getCanonicalName() + "没有配置@Excel注解!");
+        if (excel == null) {
+            throw new RuntimeException(targetClass.getCanonicalName() + "没有配置@Excel注解!");
+        }
         validExcel(wb, excel);
 
         Sheet sheet = getSheet(excel, wb);
@@ -147,14 +182,17 @@ public abstract class DefaultExcelFactory implements ExcelFactory {
             //表头校验
             if (i == excel.offset()) {
                 Row row = sheet.getRow(i);
-                if (row == null)
+                if (row == null) {
                     throw new RuntimeException("[" + excel.sheetName() + "]--->第" + (excel.offset() + 1) + "行处表头信息错误");
+                }
                 mapping = resolveMapping(row, targetClass);
                 continue;
             }
             //处理数据
             Row row = sheet.getRow(i);
-            if (row == null || isRowAllBlank(row)) continue;
+            if (row == null || isRowAllBlank(row)) {
+                continue;
+            }
             T bean = targetClass.newInstance();
             boolean evictBlank = true;  //剔除全空行
             for (Map.Entry<ColumnWrap, ExcelPos> e : mapping.entrySet()) {
@@ -164,24 +202,32 @@ public abstract class DefaultExcelFactory implements ExcelFactory {
                 Class tClass = cw.getField().getType();
 
                 Cell cell = row.getCell(pos.getColumnIndex(), Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-                if (cell == null) continue; //代表单元格为空
-                if (cell.getCellTypeEnum() == CellType.BLANK && skipBlank()) continue;
+                if (cell == null) {
+                    continue; //代表单元格为空
+                }
+                if (cell.getCellTypeEnum() == CellType.BLANK && skipBlank()) {
+                    continue;
+                }
                 cell.setCellType(CellType.STRING); //统一设置为string
                 String rawValue = cell.getStringCellValue(); //单元格值
                 Object parsedValue;
                 ExcelPos dataPos = new ExcelPos(cell.getRowIndex(), cell.getColumnIndex(), row.getSheet());
                 //转换前校验
-                if (!validBeforeConvert(rawValue, cw, dataPos, tClass))
+                if (!validBeforeConvert(rawValue, cw, dataPos, tClass)) {
                     throw new ExcelDataWrongException("Excel数据校验失败", rawValue, column.headerName(), pos);
+                }
                 //转换数据
                 parsedValue = convert(rawValue, cw, dataPos, tClass);
-                if (!validAfterConvert(parsedValue, rawValue, cw, pos, tClass))
+                if (!validAfterConvert(parsedValue, rawValue, cw, pos, tClass)) {
                     throw new ExcelDataWrongException("Excel数据校验失败", rawValue, column.headerName(), pos);
+                }
                 Method setMethod = findMethod(targetClass, column.setter(), tClass);
                 invokeMethod(setMethod, bean, parsedValue);
                 evictBlank = false;
             }
-            if (!evictBlank) result.put(row, bean);
+            if (!evictBlank) {
+                result.put(row, bean);
+            }
         }
         return result;
     }
@@ -189,7 +235,9 @@ public abstract class DefaultExcelFactory implements ExcelFactory {
     @Override
     public <T> List<DataWrap<T>> toWrapBean(Workbook wb, Class<T> targetClass) throws Exception {
         Excel excel = targetClass.getAnnotation(Excel.class);
-        if (excel == null) throw new RuntimeException(targetClass.getCanonicalName() + "没有配置@Excel注解!");
+        if (excel == null) {
+            throw new RuntimeException(targetClass.getCanonicalName() + "没有配置@Excel注解!");
+        }
         validExcel(wb, excel);
 
         Sheet sheet = getSheet(excel, wb);
@@ -204,14 +252,17 @@ public abstract class DefaultExcelFactory implements ExcelFactory {
             //表头校验
             if (i == excel.offset()) {
                 Row row = sheet.getRow(i);
-                if (row == null)
+                if (row == null) {
                     throw new RuntimeException("[" + excel.sheetName() + "]--->第" + (excel.offset() + 1) + "行处表头信息错误");
+                }
                 mapping = resolveMapping(row, targetClass);
                 continue;
             }
             //处理数据
             Row row = sheet.getRow(i);
-            if (row == null || isRowAllBlank(row)) continue;
+            if (row == null || isRowAllBlank(row)) {
+                continue;
+            }
             T bean = targetClass.newInstance();
             boolean evictBlank = true;  //剔除全空行
             for (Map.Entry<ColumnWrap, ExcelPos> e : mapping.entrySet()) {
@@ -221,24 +272,32 @@ public abstract class DefaultExcelFactory implements ExcelFactory {
                 Class tClass = cw.getField().getType();
 
                 Cell cell = row.getCell(pos.getColumnIndex(), Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-                if (cell == null) continue; //代表单元格为空
-                if (cell.getCellTypeEnum() == CellType.BLANK && skipBlank()) continue;
+                if (cell == null) {
+                    continue; //代表单元格为空
+                }
+                if (cell.getCellTypeEnum() == CellType.BLANK && skipBlank()) {
+                    continue;
+                }
                 cell.setCellType(CellType.STRING); //统一设置为string
                 String rawValue = cell.getStringCellValue(); //单元格值
                 Object parsedValue;
                 ExcelPos dataPos = new ExcelPos(cell.getRowIndex(), cell.getColumnIndex(), row.getSheet());
                 //转换前校验
-                if (!validBeforeConvert(rawValue, cw, dataPos, tClass))
+                if (!validBeforeConvert(rawValue, cw, dataPos, tClass)) {
                     throw new ExcelDataWrongException("Excel数据校验失败", rawValue, column.headerName(), pos);
+                }
                 //转换数据
                 parsedValue = convert(rawValue, cw, dataPos, tClass);
-                if (!validAfterConvert(parsedValue, rawValue, cw, pos, tClass))
+                if (!validAfterConvert(parsedValue, rawValue, cw, pos, tClass)) {
                     throw new ExcelDataWrongException("Excel数据校验失败", rawValue, column.headerName(), pos);
+                }
                 Method setMethod = findMethod(targetClass, column.setter(), tClass);
                 invokeMethod(setMethod, bean, parsedValue);
                 evictBlank = false;
             }
-            if (!evictBlank) result.add(new DataWrap<>(bean, row));
+            if (!evictBlank) {
+                result.add(new DataWrap<>(bean, row));
+            }
         }
         return result;
     }
@@ -246,7 +305,9 @@ public abstract class DefaultExcelFactory implements ExcelFactory {
     protected boolean validBeforeConvert(String rawValue, ColumnWrap cw, ExcelPos pos, Class tClass) throws Exception {
         ValidPipeLine line = cw.getPipeLine();
         //null代表没有配置校验,默认通过
-        if (line == null) return true;
+        if (line == null) {
+            return true;
+        }
         for (; ; ) {
             boolean result;
             try {
@@ -255,22 +316,27 @@ public abstract class DefaultExcelFactory implements ExcelFactory {
             } catch (Exception e) {
                 throw new ExcelDataWrongException(e.getMessage(), rawValue, cw.getColumn().headerName(), pos);
             }
-            if ((line = line.getNext()) != null && result == true)
+            if ((line = line.getNext()) != null && result == true) {
                 continue;
-            else
+            } else {
                 return result;
+            }
         }
     }
 
-    protected boolean validAfterConvert(Object convertedValue, String rawValue, ColumnWrap cw, ExcelPos pos, Class tClass) throws Exception {
+    protected boolean validAfterConvert(Object convertedValue, String rawValue, ColumnWrap cw, ExcelPos pos,
+                                        Class tClass) throws Exception {
         ValidPipeLine line = cw.getPipeLine();
         //null代表没有配置校验,默认通过
-        if (line == null) return true;
+        if (line == null) {
+            return true;
+        }
         for (; ; ) {
-            if (line.getNext() != null)
+            if (line.getNext() != null) {
                 line = line.getNext();
-            else
+            } else {
                 break;
+            }
         }
         for (; ; ) {
             boolean result;
@@ -280,10 +346,11 @@ public abstract class DefaultExcelFactory implements ExcelFactory {
             } catch (Exception e) {
                 throw new ExcelDataWrongException(e.getMessage(), rawValue, cw.getColumn().headerName(), pos);
             }
-            if ((line = line.getPrev()) != null && result == true)
+            if ((line = line.getPrev()) != null && result == true) {
                 continue;
-            else
+            } else {
                 return result;
+            }
         }
     }
 
@@ -404,7 +471,9 @@ public abstract class DefaultExcelFactory implements ExcelFactory {
             if (i == -1) {
                 //设置表头
                 for (int j = 0; j < cws.length; j++) {
-                    if (cws == null) continue;
+                    if (cws == null) {
+                        continue;
+                    }
                     ColumnWrap cw = cws[j];
                     Column c = cw.getColumn();
                     Cell cell = row.createCell(j);
@@ -414,7 +483,9 @@ public abstract class DefaultExcelFactory implements ExcelFactory {
                 //设置数据
                 for (int j = 0; j < cws.length; j++) {
                     T t = list.get(i);
-                    if (cws == null) continue;
+                    if (cws == null) {
+                        continue;
+                    }
                     ColumnWrap cw = cws[j];
                     Column c = cw.getColumn();
                     Cell cell = row.createCell(j);

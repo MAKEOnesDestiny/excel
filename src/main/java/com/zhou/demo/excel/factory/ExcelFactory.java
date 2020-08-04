@@ -13,6 +13,10 @@ import java.util.Map;
 
 public interface ExcelFactory extends ExcelFactoryConfig {
 
+    ExcelFactoryConfigInner getConfig();
+
+    void setConfig(ExcelFactoryConfigInner excelFactoryConfigInner);
+
     <T> List<T> toBean(InputStream inputStream, Class<T> targetClass) throws Exception;
 
     //提供对workbook的解析方法,避免每次对流的解析,降低处理时间

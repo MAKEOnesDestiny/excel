@@ -9,6 +9,10 @@ import java.util.List;
 
 public interface DynamicExcelFactory extends ExcelFactoryConfig{
 
+    ExcelFactoryConfigInner getConfig();
+
+    void setConfig(ExcelFactoryConfigInner excelFactoryConfigInner);
+
     List<DynamicExcelBean> toDynamicBean(Sheet sheet,DynamicExcelHeaders headers) throws Exception;
 
     /**

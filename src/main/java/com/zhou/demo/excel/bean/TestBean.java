@@ -1,30 +1,29 @@
 package com.zhou.demo.excel.bean;
 
+import com.zhou.demo.excel.annotation.ArgsValidtors;
 import com.zhou.demo.excel.annotation.Column;
 import com.zhou.demo.excel.annotation.Excel;
 import com.zhou.demo.excel.annotation.Version;
+import com.zhou.demo.excel.annotation.valid.LengthLimitValidator;
 import com.zhou.demo.excel.annotation.valid.LengthValidator;
 import com.zhou.demo.excel.annotation.valid.NotEmptyValidator;
-import com.zhou.demo.excel.annotation.valid.NumLimitValidator;
-import com.zhou.demo.excel.annotation.valid.PostiveIntegerValidator;
 import com.zhou.demo.excel.factory.converter.TestConverter;
+import java.math.BigDecimal;
 import lombok.Data;
 
-import java.math.BigDecimal;
-
-@Excel(sheetName = "商品映射维护模板导出")
+@Excel(sheetName = "商品映射维护")
 @Data
 public class TestBean {
 
     @Version({
-            @Column(headerName = "价格", convert = TestConverter.class, version = 1)
-    })
-    @Column(headerName = "价格", convert = TestConverter.class, version = 1)
+                     @Column(headerName = "价格", convert = TestConverter.class, version = 1)
+             })
+    @Column(headerName = "价格", convert = TestConverter.class, version = 1, required = false)
     private BigDecimal price;
 
     @Version({
-            @Column(headerName = "平台", version = 1)
-    })
+                     @Column(headerName = "平台", version = 1)
+             })
     @Column(headerName = "平台", valid = {NotEmptyValidator.class, LengthValidator.class})
     private String platform;
 
@@ -34,13 +33,14 @@ public class TestBean {
     @Column(headerName = "OMS商品名称"/*,setter = "setOmsGoodsName"*/)
     private String omsGoodsName;
 
-    @Column(headerName = "平台商品编码", valid = {NotEmptyValidator.class, PostiveIntegerValidator.class, NumLimitValidator.class})
+    @Column(headerName = "平台商品ID", valid = {NotEmptyValidator.class})
     private String platformGoodsCode;
 
-    @Column(headerName = "平台商品名称")
+    @Column(headerName = "平台商品名称", argsValid = {@ArgsValidtors(validator = LengthLimitValidator.class, args = {"100"},
+                                                               argsClass = {int.class})})
     private String platformGoodsName;
 
-    @Column(headerName = "过期产品")
+    @Column(headerName = "过期产品", required = false)
     private String deprecated;
 
 
@@ -100,12 +100,16 @@ public class TestBean {
         this.deprecated = deprecated;
     }
 
-    public static void main(String[] args) {
-        BigDecimal value = new BigDecimal("123");
-        if (new BigDecimal(value.intValue()).compareTo(value) != 0) {
-            System.out.println(1);
-        }
-
+    @Override
+    public String toString() {
+        return "TestBean{" +
+                "price=" + price +
+                ", platform='" + platform + '\'' +
+                ", omsBusinessCode='" + omsBusinessCode + '\'' +
+                ", omsGoodsName='" + omsGoodsName + '\'' +
+                ", platformGoodsCode='" + platformGoodsCode + '\'' +
+                ", platformGoodsName='" + platformGoodsName + '\'' +
+                ", deprecated='" + deprecated + '\'' +
+                '}';
     }
-
 }

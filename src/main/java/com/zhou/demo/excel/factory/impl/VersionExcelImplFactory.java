@@ -2,9 +2,13 @@ package com.zhou.demo.excel.factory.impl;
 
 import com.zhou.demo.excel.annotation.Column;
 import com.zhou.demo.excel.annotation.ColumnWrap;
+import com.zhou.demo.excel.annotation.Excel;
+import com.zhou.demo.excel.annotation.ExcelBeanMetaData;
 import com.zhou.demo.excel.annotation.Version;
 import com.zhou.demo.excel.factory.ExcelPos;
 import com.zhou.demo.excel.factory.VersionExcelFactory;
+import java.io.IOException;
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -45,6 +49,72 @@ public class VersionExcelImplFactory extends SimpleExcelFactory implements Versi
         }
         VERSION_TL.set(version);
         return toBean(workbook, targetClass);
+    }
+
+    @Override
+    public <T> Workbook generateExcel(List<T> list, Class<T> targetClass, int version) throws IOException {
+        VERSION_TL.set(version);
+        return generateExcel(list, targetClass);
+    }
+
+    @Override
+    public <T> ExcelBeanMetaData resolveExcelBeanMeta(Class<T> targetClass) {
+        Excel excel = targetClass.getAnnotation(Excel.class);
+        Field[] fields = targetClass.getDeclaredFields();
+        Class<? super T> temp = targetClass.getSuperclass();
+        //找到父类的所有字段
+        while (temp != Object.class) {
+            Field[] parentFields = temp.getDeclaredFields();
+            //fix me?
+            fields = (Field[]) ArrayUtils.addAll(fields, parentFields);
+            temp = temp.getSuperclass();
+        }
+        int count = 0;
+        for (int i = 0; i < fields.length; i++) {
+            Field f = fields[i];
+            Version v = f.getAnnotation(Version.class);
+            if (v == null) continue;
+            Column[] cs = v.value();
+            int requireVersion = getVersion();
+            Column findColumn = null;
+            for (Column c : cs) {
+                int version = c.version();
+                if (version == requireVersion) {
+                    //找到对应版本的Column
+                    findColumn = c;
+                    break;
+                }
+            }
+            if (findColumn != null) {
+                count++;
+            }
+            //else skip
+        }
+        ColumnWrap[] cws = new ColumnWrap[count];
+        int j = 0;
+        for (int i = 0; i < fields.length; i++) {
+            Field f = fields[i];
+            Version v = f.getAnnotation(Version.class);
+            if (v == null) continue;
+            Column[] cs = v.value();
+            int requireVersion = getVersion();
+            Column findColumn = null;
+            for (Column c : cs) {
+                int version = c.version();
+                if (version == requireVersion) {
+                    //找到对应版本的Column
+                    findColumn = c;
+                    break;
+                }
+            }
+            if (findColumn != null) {
+                cws[j] = new ColumnWrap(findColumn, f, null);
+                j++;
+            }
+            //else skip
+        }
+        ExcelBeanMetaData metaData = new ExcelBeanMetaData(excel, cws);
+        return metaData;
     }
 
     @Override
