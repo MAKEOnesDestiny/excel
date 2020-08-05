@@ -22,6 +22,4 @@ public interface DynamicExcelHeaders {
 
     Integer getHeadersRowNum();
 
-
-
 }

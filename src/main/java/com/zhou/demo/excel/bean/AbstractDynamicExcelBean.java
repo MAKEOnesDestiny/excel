@@ -1,9 +1,8 @@
 package com.zhou.demo.excel.bean;
 
-import org.apache.poi.ss.usermodel.Cell;
-
 import java.util.HashMap;
 import java.util.Map;
+import org.apache.poi.ss.usermodel.Cell;
 
 public abstract class AbstractDynamicExcelBean implements DynamicExcelBean {
 
@@ -11,7 +10,8 @@ public abstract class AbstractDynamicExcelBean implements DynamicExcelBean {
 
     @Override
     public Cell getCellByHeader(Header header) {
-        return resolvedMap.get(header).getCell();
+        CellWrap cw = resolvedMap.get(header);
+        return cw == null ? null : cw.getCell();
     }
 
     @Override

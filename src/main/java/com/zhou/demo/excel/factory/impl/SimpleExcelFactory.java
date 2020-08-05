@@ -74,28 +74,7 @@ public class SimpleExcelFactory extends DefaultExcelFactory {
             }
             ExcelPos pos;
             if ((pos = findPos(c.headerName(), row)) != null) {
-                //获取set方法的名称
-                String setMethodName = findSetMethod(f, true);
-                String initSetMethodName = c.setter();
-                if (initSetMethodName.equals("") && setMethodName != null) {
-                    //获取注解内部的值map
-                    Map<String, Object> valuesMap = getMemberValuesMap(c);
-                    //如果用户没有自定义setter,则使用默认的setter方法
-                    valuesMap.put("setter", setMethodName);
-                }
-                ValidPipeLine validPipeLine = null;
-                if (c.argsValid() != null && c.argsValid().length > 0) {
-                    try {
-                        validPipeLine = initPipeLine(c.argsValid());
-                    } catch (NoSuchMethodException e) {
-                        throw new ExcelConfigException("no avaiable constructor for class " + clazz);
-                    }
-                } else {
-                    Class[] validClass = c.valid();
-                    validPipeLine = initPipeLine(validClass);
-                }
-                //todo:添加全局缓存避免重复解析
-                map.put(new ColumnWrap(c, f, validPipeLine), pos);
+                resolve(f, c, clazz, pos, map);
             } else {
                 boolean required = c.required();
                 if (required) {
@@ -106,6 +85,32 @@ public class SimpleExcelFactory extends DefaultExcelFactory {
         }
         return map;
     }
+
+    protected <T> void resolve(Field f, Column c, Class<T> clazz, ExcelPos pos, Map<ColumnWrap, ExcelPos> map) {
+        //获取set方法的名称
+        String setMethodName = findSetMethod(f, true);
+        String initSetMethodName = c.setter();
+        if (initSetMethodName.equals("") && setMethodName != null) {
+            //获取注解内部的值map
+            Map<String, Object> valuesMap = getMemberValuesMap(c);
+            //如果用户没有自定义setter,则使用默认的setter方法
+            valuesMap.put("setter", setMethodName);
+        }
+        ValidPipeLine validPipeLine = null;
+        if (c.argsValid() != null && c.argsValid().length > 0) {
+            try {
+                validPipeLine = initPipeLine(c.argsValid());
+            } catch (NoSuchMethodException e) {
+                throw new ExcelConfigException("no avaiable constructor for class " + clazz);
+            }
+        } else {
+            Class[] validClass = c.valid();
+            validPipeLine = initPipeLine(validClass);
+        }
+        //todo:添加全局缓存避免重复解析
+        map.put(new ColumnWrap(c, f, validPipeLine), pos);
+    }
+
 
     protected ValidPipeLine initPipeLine(Class[] validClass) {
         ValidPipeLine first = null;

@@ -36,8 +36,10 @@ public class TestBean {
     @Column(headerName = "平台商品ID", valid = {NotEmptyValidator.class})
     private String platformGoodsCode;
 
-    @Column(headerName = "平台商品名称", argsValid = {@ArgsValidtors(validator = LengthLimitValidator.class, args = {"100"},
-                                                               argsClass = {int.class})})
+    @Version(@Column(headerName = "平台商品名称", argsValid = {@ArgsValidtors(validator = LengthLimitValidator.class, args =
+            {"10"}, argsClass = {int.class})}, version = 1))
+    @Column(headerName = "平台商品名称", argsValid = {
+            @ArgsValidtors(validator = LengthLimitValidator.class, args = {"100"}, argsClass = {int.class})})
     private String platformGoodsName;
 
     @Column(headerName = "过期产品", required = false)
