@@ -14,7 +14,16 @@ import com.zhou.demo.excel.factory.DynamicExcelFactory;
 import com.zhou.demo.excel.factory.ExcelFactory;
 import com.zhou.demo.excel.factory.impl.SimpleDynamicExcelFactory;
 import com.zhou.demo.excel.factory.impl.SimpleExcelFactory;
+import com.zhou.demo.excel.spring.ExcelToBean;
 import com.zhou.demo.excel.utils.TokenUtil;
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.List;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+import javax.servlet.http.Part;
 import lombok.extern.log4j.Log4j2;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -25,15 +34,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.ResponseBody;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
-import javax.servlet.http.Part;
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.List;
 
 @Controller
 @RequestMapping("/test/controller")
@@ -55,13 +55,13 @@ public class TestController {
         ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
         Workbook wb = new XSSFWorkbook(bis);
 
-        ParameterPassHelp.setParam(ParamConst.LENGTH_LIMIT_PARAM,5);
+        ParameterPassHelp.setParam(ParamConst.LENGTH_LIMIT_PARAM, 5);
 
         ExcelFactory ef = new SimpleExcelFactory();
         List<TestBean> testBeans;
         try {
-             testBeans = ef.toBean(wb, TestBean.class);
-        }catch (Exception e){
+            testBeans = ef.toBean(wb, TestBean.class);
+        } catch (Exception e) {
             return e.toString();
         }
         return testBeans;
@@ -109,7 +109,7 @@ public class TestController {
                 if ("备注".equals(h.getHeaderInStr())) {
                     continue;
                 }
-//                h.setValidators(NotBlankValidator.class);
+                //                h.setValidators(NotBlankValidator.class);
             }
             List<DynamicExcelBean> toBean = dFactory.toDynamicBean(sheet, headers);
         } catch (ExcelDataWrongException e) {
@@ -128,7 +128,9 @@ public class TestController {
         ClassLoader cl = ClassLoader.getSystemClassLoader();
         String classInStr = "com.zhou.demo.excel.bean." + bean;
         Class clazz = Class.forName(classInStr);
-        if (clazz == null) throw new RuntimeException("错误的参数:" + bean);
+        if (clazz == null) {
+            throw new RuntimeException("错误的参数:" + bean);
+        }
         ExcelFactory factory = new SimpleExcelFactory();
         response.setContentType("application/vnd.ms-excel;charset=UTF-8");
         response.setHeader("Content-Disposition", "attachment;filename=file.xls");
@@ -149,8 +151,13 @@ public class TestController {
         return result;
     }
 
-    public static void main(String[] args) throws ClassNotFoundException {
-    }
 
+    @RequestMapping("/upload2")
+    @ResponseBody
+    public Object upload2(@ExcelToBean(targetClass = TestBean.class, file = "file") List<TestBean> list)
+//    public Object upload2(List list)
+            throws Exception {
+        return list;
+    }
 
 }

@@ -14,6 +14,8 @@ import com.zhou.demo.excel.factory.ExcelFactory;
 import com.zhou.demo.excel.factory.ExcelFactoryConfigInner;
 import com.zhou.demo.excel.factory.ExcelPos;
 import com.zhou.demo.excel.factory.formatter.Formatter;
+import java.io.BufferedInputStream;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
@@ -87,8 +89,12 @@ public abstract class DefaultExcelFactory implements ExcelFactory {
 
     @Override
     public <T> List<T> toBean(InputStream inputStream, Class<T> targetClass) throws Exception {
-        inputStream.reset();
-        Workbook wb = new XSSFWorkbook(inputStream);
+        BufferedInputStream bis = null;
+        if (!(inputStream instanceof FileInputStream)) {
+            bis = new BufferedInputStream(inputStream);
+            bis.reset();
+        }
+        Workbook wb = new XSSFWorkbook(bis == null ? inputStream : bis);
         return toBean(wb, targetClass);
     }
 

@@ -24,4 +24,13 @@ public abstract class AbstractDynamicExcelBean implements DynamicExcelBean {
     public Map<Header, CellWrap> getResolvedMap() {
         return resolvedMap;
     }
+
+    @Override
+    public String toString() {
+        Map<String,Object> map = new HashMap<>();
+        for (Map.Entry<Header, CellWrap> e:resolvedMap.entrySet()) {
+            map.put(e.getKey().getHeaderInStr(),e.getValue().getObj());
+        }
+        return map.toString();
+    }
 }

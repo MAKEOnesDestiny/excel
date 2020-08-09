@@ -1,5 +1,6 @@
 package com.zhou.demo.excel;
 
+import com.alibaba.fastjson.JSONObject;
 import com.zhou.demo.excel.annotation.valid.LengthValidator;
 import com.zhou.demo.excel.bean.DynamicExcelBean;
 import com.zhou.demo.excel.bean.DynamicExcelHeaders;
@@ -10,6 +11,7 @@ import com.zhou.demo.excel.config.ParameterPassHelp;
 import com.zhou.demo.excel.factory.DynamicExcelFactory;
 import com.zhou.demo.excel.factory.ExcelFactory;
 import com.zhou.demo.excel.factory.VersionExcelFactory;
+import com.zhou.demo.excel.factory.converter.StaticStrConverter;
 import com.zhou.demo.excel.factory.converter.TestConverter;
 import com.zhou.demo.excel.factory.impl.SimpleDynamicExcelFactory;
 import com.zhou.demo.excel.factory.impl.SimpleExcelFactory;
@@ -88,21 +90,20 @@ public class ExcelApplicationTests {
 
         DynamicExcelFactory def = new SimpleDynamicExcelFactory();
         List<DynamicExcelBean> dynamicExcelBeans = null;
-        ParameterPassHelp.setParam(ParamConst.LENGTH_LIMIT_PARAM, 2);
+        ParameterPassHelp.setParam(ParamConst.LENGTH_LIMIT_PARAM, 200);
         try {
             Sheet sheet = wb.getSheet("商品映射维护");
             DynamicExcelHeaders headers = def.getHeadersFromExcel(sheet, 0);
             List<String> headersInStr = headers.getHeadersInStr();
             List<Header> headerList = headers.getHeaders();
             headerList.get(0).setValidators(LengthValidator.class);
-            headerList.get(0).setConverter(TestConverter.class);
+            headerList.get(0).setConverter(StaticStrConverter.class);
             //
             List<Cell> cells = headers.getHeadersInCell();
             Map m1 = headers.getCellHeadersAsMap();
             Map m2 = headers.getStrHeadersAsMap();
             //
             dynamicExcelBeans = def.toDynamicBean(sheet, headers);
-            System.out.println(dynamicExcelBeans);
             dynamicExcelBeans.get(0).getContentByHeader(null);
         } catch (Exception e) {
             e.printStackTrace();
