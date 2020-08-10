@@ -46,7 +46,7 @@ public class ExcelApplicationTests {
         ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
         Workbook wb = new XSSFWorkbook(bis);
 
-        ParameterPassHelp.setParam(ParamConst.LENGTH_LIMIT_PARAM, 40);
+        ParameterPassHelp.setParam(ParamConst.LENGTH_LIMIT_PARAM, 1);
 
         ExcelFactory ef = new SimpleExcelFactory();
         List<TestBean> testBeans = null;

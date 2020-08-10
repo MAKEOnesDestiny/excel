@@ -12,12 +12,12 @@ public class ExcelFactoryConfigInner implements ExcelFactoryConfig {
     /**
      * 是否捕获所有异常
      */
-    private boolean catchAllException = false;
+    private boolean catchAllException = true;
 
     /**
      * 是否过滤举例行
      */
-    private boolean filterExample = false;
+    private boolean filterExample = true;
 
     public boolean isSkipBlank() {
         return skipBlank;

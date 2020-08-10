@@ -9,11 +9,13 @@ import com.zhou.demo.excel.annotation.Excel;
 import com.zhou.demo.excel.annotation.ExcelBeanMetaData;
 import com.zhou.demo.excel.annotation.Validator;
 import com.zhou.demo.excel.bean.DataWrap;
+import com.zhou.demo.excel.exception.ExcelCompositionException;
 import com.zhou.demo.excel.exception.ExcelDataWrongException;
 import com.zhou.demo.excel.factory.ExcelFactory;
 import com.zhou.demo.excel.factory.ExcelFactoryConfigInner;
 import com.zhou.demo.excel.factory.ExcelPos;
 import com.zhou.demo.excel.factory.formatter.Formatter;
+import com.zhou.demo.excel.utils.ExcelDataUtil;
 import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -40,16 +42,16 @@ import org.springframework.util.ReflectionUtils;
 public abstract class DefaultExcelFactory implements ExcelFactory {
 
     public static final Log log = LogFactory.getLog(DefaultExcelFactory.class.getName());
-
-    private ExcelFactoryConfigInner config;
+    //给一个默认的配置
+    private ExcelFactoryConfigInner config = new ExcelFactoryConfigInner();
 
     @Override
-    public ExcelFactoryConfigInner getConfig() {
+    public synchronized ExcelFactoryConfigInner getConfig() {
         return config;
     }
 
     @Override
-    public void setConfig(ExcelFactoryConfigInner config) {
+    public synchronized void setConfig(ExcelFactoryConfigInner config) {
         this.config = config;
     }
 
@@ -113,7 +115,7 @@ public abstract class DefaultExcelFactory implements ExcelFactory {
             log.debug("找不到excel:" + excel.sheetName());
             return result;
         }
-
+        List<ExcelDataWrongException> exceptions = new ArrayList<>();
         for (int i = excel.offset(); i <= sheet.getLastRowNum(); i++) {
             //表头校验
             if (i == excel.offset()) {
@@ -127,6 +129,10 @@ public abstract class DefaultExcelFactory implements ExcelFactory {
             //处理数据
             Row row = sheet.getRow(i);
             if (row == null || isRowAllBlank(row)) {
+                continue;
+            }
+            //新增举例行过滤
+            if (getConfig().isFilterExample() && i == excel.offset() + 1 && ExcelDataUtil.isExampleRow(row, mapping)) {
                 continue;
             }
             T bean = targetClass.newInstance();
@@ -148,14 +154,23 @@ public abstract class DefaultExcelFactory implements ExcelFactory {
                 String rawValue = cell.getStringCellValue(); //单元格值
                 Object parsedValue;
                 ExcelPos dataPos = new ExcelPos(cell.getRowIndex(), cell.getColumnIndex(), row.getSheet());
-                //转换前校验
-                if (!validBeforeConvert(rawValue, cw, dataPos, tClass)) {
-                    throw new ExcelDataWrongException("Excel数据校验失败", rawValue, column.headerName(), pos);
-                }
-                //转换数据
-                parsedValue = convert(rawValue, cw, dataPos, tClass);
-                if (!validAfterConvert(parsedValue, rawValue, cw, pos, tClass)) {
-                    throw new ExcelDataWrongException("Excel数据校验失败", rawValue, column.headerName(), pos);
+                try {
+                    //转换前校验
+                    if (!validBeforeConvert(rawValue, cw, dataPos, tClass)) {
+                        throw new ExcelDataWrongException("Excel数据校验失败", rawValue, column.headerName(), pos);
+                    }
+                    //转换数据
+                    parsedValue = convert(rawValue, cw, dataPos, tClass);
+                    if (!validAfterConvert(parsedValue, rawValue, cw, pos, tClass)) {
+                        throw new ExcelDataWrongException("Excel数据校验失败", rawValue, column.headerName(), pos);
+                    }
+                } catch (ExcelDataWrongException e1) {
+                    if (getConfig().isCatchAllException()) {
+                        exceptions.add(e1);
+                        continue;
+                    } else {
+                        throw e1;
+                    }
                 }
                 Method setMethod = findMethod(targetClass, column.setter(), tClass);
                 invokeMethod(setMethod, bean, parsedValue);
@@ -164,6 +179,9 @@ public abstract class DefaultExcelFactory implements ExcelFactory {
             if (!evictBlank) {
                 result.add(bean);
             }
+        }
+        if (exceptions.size() > 0) {
+            throw new ExcelCompositionException(exceptions);
         }
         return result;
     }

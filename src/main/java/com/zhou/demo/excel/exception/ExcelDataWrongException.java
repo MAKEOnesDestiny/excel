@@ -8,7 +8,7 @@ import lombok.Data;
  * 异常中包含1)数据的位置信息 2)异常数据
  */
 @Data
-public class ExcelDataWrongException extends Exception {
+public class ExcelDataWrongException extends ExcelException {
 
     private ExcelPos excelPos;
 

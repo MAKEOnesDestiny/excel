@@ -1,13 +1,15 @@
 package com.zhou.demo.excel.utils;
 
+import com.zhou.demo.excel.annotation.ColumnWrap;
 import com.zhou.demo.excel.bean.DataWrap;
+import com.zhou.demo.excel.factory.ExcelPos;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public abstract class ExcelDataUtil {
 
@@ -32,8 +34,8 @@ public abstract class ExcelDataUtil {
      */
     public static final void simpleClearExampleRow(Workbook wb, String sheetName) {
         Sheet sheet = wb.getSheet(sheetName);
-        if(sheet==null){
-            return ;
+        if (sheet == null) {
+            return;
         }
         for (int i = 0; i <= sheet.getLastRowNum(); i++) {
             Row row = sheet.getRow(i);
@@ -46,6 +48,26 @@ public abstract class ExcelDataUtil {
                 }
             }
         }
+    }
+
+    /**
+     * 一个非常简单判断举例列的方法，一行中每一个cell都是是以'例'开头
+     */
+    public static final boolean isExampleRow(Row row, Map<ColumnWrap, ExcelPos> mapping) {
+        if (row == null || mapping.size() == 0) {
+            return false;
+        }
+        for (Map.Entry<ColumnWrap, ExcelPos> e : mapping.entrySet()) {
+            ExcelPos pos = e.getValue();
+            Cell cell = row.getCell(pos.getColumnIndex(), Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+            if (cell == null) {
+                return false;
+            }
+            if(cell.getStringCellValue()==null || !cell.getStringCellValue().startsWith("例")){
+                return false;
+            }
+        }
+        return true;
     }
 
 }
