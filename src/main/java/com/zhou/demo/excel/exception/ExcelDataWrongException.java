@@ -17,6 +17,13 @@ public class ExcelDataWrongException extends ExcelException {
 
     private Object invalidData;
 
+    @Override
+    public String toString() {
+        String result = "[" + excelPos.getSheet().getSheetName() + "]--->" + excelPos + "处数据错误,错误数据为:" + invalidData;
+        if (getMessage() != null) result = result + "(" + getMessage() + ")";
+        return result;
+    }
+
     public ExcelDataWrongException(String columnName, ExcelPos excelPos) {
         super();
         if(excelPos==null) throw new IllegalArgumentException("excelPos不能为空");
@@ -39,13 +46,5 @@ public class ExcelDataWrongException extends ExcelException {
         this.excelPos = excelPos;
         this.columnName = null;
     }
-
-    @Override
-    public String toString() {
-        String result = "[" + excelPos.getSheet().getSheetName() + "]--->" + excelPos + "处数据错误,错误数据为:" + invalidData;
-        if (getMessage() != null) result = result + "(" + getMessage() + ")";
-        return result;
-    }
-
 
 }

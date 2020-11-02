@@ -155,8 +155,9 @@ public class TestController {
     @RequestMapping("/upload2")
     @ResponseBody
     public Object upload2(@ExcelToBean(targetClass = TestBean.class, file = "file") List<TestBean> list)
-//    public Object upload2(List list)
             throws Exception {
+        System.out.println(111);
+        System.gc();
         return list;
     }
 
