@@ -7,10 +7,7 @@ import org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchDa
 import org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchRepositoriesAutoConfiguration;
 import org.springframework.context.ApplicationContext;
 
-@SpringBootApplication(exclude = {
-          ElasticsearchAutoConfiguration.class
-        , ElasticsearchDataAutoConfiguration.class
-        , ElasticsearchRepositoriesAutoConfiguration.class})
+@SpringBootApplication()
 public class ExcelApplication {
 
     public static void main(String[] args) {
