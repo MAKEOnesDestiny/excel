@@ -17,7 +17,7 @@ public class SharingStringsHandler extends DefaultHandler {
     public StringBuilder currentElement; //代表t标签里面的内容
     public boolean isTag = false;
 
-    public Map<Integer, String> cache = new HashMap<>();
+    public Map<Integer, String> cache = new HashMap<>(); //读取共享字符串里面的内容，然后放到缓存里面
     public Integer index = 0;
 
     @Override
