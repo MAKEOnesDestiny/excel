@@ -19,6 +19,11 @@ public class ExcelFactoryConfigInner implements ExcelFactoryConfig {
      */
     private boolean filterExample = true;
 
+    /**
+     * 是否使用1904时间格式
+     */
+    private boolean use1904 = false;
+
     public boolean isSkipBlank() {
         return skipBlank;
     }
@@ -48,4 +53,11 @@ public class ExcelFactoryConfigInner implements ExcelFactoryConfig {
         return skipBlank;
     }
 
+    public boolean isUse1904() {
+        return use1904;
+    }
+
+    public void setUse1904(boolean use1904) {
+        this.use1904 = use1904;
+    }
 }

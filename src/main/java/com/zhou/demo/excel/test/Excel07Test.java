@@ -36,7 +36,7 @@ public class Excel07Test {
 
         Map<Integer, InputStream> sheetMap = resolveCore(pkg);
         sheetMap.entrySet().forEach(t -> {
-            ExcelContentHandler contentHandler = new ExcelContentHandler();
+            ExcelContentHandler contentHandler = new ExcelContentHandler(null);
             try {
                 parse(t.getValue(), contentHandler);
             } catch (Exception e) {
