@@ -18,7 +18,7 @@ public class TestBean {
     @Version({
                      @Column(headerName = "价格", convert = TestConverter.class, version = 1)
              })
-    @Column(headerName = "价格", convert = TestConverter.class, version = 1, required = false)
+//    @Column(headerName = "价格", convert = TestConverter.class, version = 1, required = false)
     private BigDecimal price;
 
     @Version({
@@ -42,7 +42,7 @@ public class TestBean {
             @ArgsValidtors(validator = LengthLimitValidator.class, args = {"100"}, argsClass = {int.class})})
     private String platformGoodsName;
 
-    @Column(headerName = "过期产品", required = false)
+//    @Column(headerName = "过期产品", required = false)
     private String deprecated;
 
 

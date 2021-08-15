@@ -19,7 +19,7 @@ public class ExcelDataWrongException extends ExcelException {
 
     @Override
     public String toString() {
-        String result = "[" + excelPos.getSheet().getSheetName() + "]--->" + excelPos + "处数据错误,错误数据为:" + invalidData;
+        String result = "[" + excelPos.getSheetName() + "]--->" + excelPos + "处数据错误,错误数据为:" + invalidData;
         if (getMessage() != null) result = result + "(" + getMessage() + ")";
         return result;
     }

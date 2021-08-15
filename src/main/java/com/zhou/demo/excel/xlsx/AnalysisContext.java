@@ -13,6 +13,8 @@ public interface AnalysisContext<T> {
 
     List<T> results();
 
+    List<Map<Integer,CellData>> tempResults();
+
     //mainly config
     ExcelFactoryConfigInner getConfig();
 
@@ -27,6 +29,8 @@ public interface AnalysisContext<T> {
     void setConfigInner(ExcelFactoryConfigInner configInner);
 
     boolean isInitialized();
+
+    List<Exception> processExceptions();
 
     //init static analysis context,for example, targetClass & config info
     void initContext(RawContextInfo rawContextInfo);

@@ -11,7 +11,7 @@ public abstract class AbstractXlsxTagHandler implements XlsxTagHandler {
     }
 
     @Override
-    public void endElement(String qName, AnalysisContext context) {
+    public void endElement(String qName, AnalysisContext context) throws Exception{
 
     }
 

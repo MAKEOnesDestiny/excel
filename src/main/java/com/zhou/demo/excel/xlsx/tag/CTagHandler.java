@@ -19,7 +19,8 @@ public class CTagHandler extends AbstractXlsxTagHandler {
         context.processInfo().setColumnIndex(PositionUtil.getCol(columnIndex));
 
         String rawType = attributes.getValue(POIXmlConstant.ATTRIBUTE_T);
-        CellData cellData = new CellData(CellTypeEnum.lookCellTypeEnum(rawType));
+        CellData cellData = new CellData(context.processInfo().getRowIndex(), context.processInfo().getColumnIndex(),
+                                         CellTypeEnum.lookCellTypeEnum(rawType));
 
         String dateFormatIndex = attributes.getValue(POIXmlConstant.ATTRIBUTE_S);
         Integer dateFormatIndexInteger;

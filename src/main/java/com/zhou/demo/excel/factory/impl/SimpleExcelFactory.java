@@ -255,7 +255,15 @@ public class SimpleExcelFactory extends DefaultExcelFactory {
             Field f = fields[i];
             Column c = f.getAnnotation(Column.class);
             if (c != null) {
-                cws[i] = new ColumnWrap(c, f, null);
+                cws[i] = new ColumnWrap(c, f, initPipeLine(c.valid()));
+                String setMethodName = findSetMethod(f, true);
+                String initSetMethodName = c.setter();
+                if (initSetMethodName.equals("") && setMethodName != null) {
+                    //获取注解内部的值map
+                    Map<String, Object> valuesMap = getMemberValuesMap(c);
+                    //如果用户没有自定义setter,则使用默认的setter方法
+                    valuesMap.put("setter", setMethodName);
+                }
             }
             //else skip
         }

@@ -2,6 +2,7 @@ package com.zhou.demo.excel.xlsx;
 
 import com.zhou.demo.excel.xlsx.tag.CTagHandler;
 import com.zhou.demo.excel.xlsx.tag.RowTagHandler;
+import com.zhou.demo.excel.xlsx.tag.SheetDataHandler;
 import com.zhou.demo.excel.xlsx.tag.VTagHandler;
 import java.util.Deque;
 import java.util.HashMap;
@@ -18,6 +19,7 @@ public class ExcelContentHandler extends DefaultHandler {
         put("c", new CTagHandler());
         put("v", new VTagHandler());
         put("row", new RowTagHandler());
+        put("sheetData", new SheetDataHandler());
     }};
 
     private AnalysisContext analysisContext;
@@ -48,7 +50,11 @@ public class ExcelContentHandler extends DefaultHandler {
         XlsxTagHandler handler = HANDLER_MAP.get(qName);
         tagDeque.pop();
         if (handler != null) {
-            handler.endElement(qName, analysisContext);
+            try {
+                handler.endElement(qName, analysisContext);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 

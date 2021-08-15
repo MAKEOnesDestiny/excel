@@ -4,6 +4,9 @@ import java.math.BigDecimal;
 
 public class CellData<T> {
 
+    private Integer rowIndex;
+    private Integer columnIndex;
+
     private CellTypeEnum cellTypeEnum;
     private String stringValue;
     private BigDecimal bigDecimalValue;
@@ -16,6 +19,12 @@ public class CellData<T> {
     }
 
     public CellData(CellTypeEnum cellTypeEnum) {
+        this.cellTypeEnum = cellTypeEnum;
+    }
+
+    public CellData(Integer rowIndex, Integer columnIndex, CellTypeEnum cellTypeEnum) {
+        this.rowIndex = rowIndex;
+        this.columnIndex = columnIndex;
         this.cellTypeEnum = cellTypeEnum;
     }
 
@@ -66,4 +75,31 @@ public class CellData<T> {
     public void setData(T data) {
         this.data = data;
     }
+
+    public Integer getRowIndex() {
+        return rowIndex;
+    }
+
+    public void setRowIndex(Integer rowIndex) {
+        this.rowIndex = rowIndex;
+    }
+
+    public Integer getColumnIndex() {
+        return columnIndex;
+    }
+
+    public void setColumnIndex(Integer columnIndex) {
+        this.columnIndex = columnIndex;
+    }
+
+    public String getDataString() {
+        if (bigDecimalValue != null) {
+            return bigDecimalValue.toString();
+        }
+        if (boolValue != null) {
+            return boolValue.toString();
+        }
+        return stringValue;
+    }
+
 }

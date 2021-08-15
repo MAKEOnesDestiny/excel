@@ -19,7 +19,7 @@ public class RowTagHandler extends AbstractXlsxTagHandler {
     public void endElement(String qName, AnalysisContext context) {
         //process row data
         Map<Integer, CellData> map = context.processInfo().getMap();
-        CellData cellData = context.processInfo().getTemp();
-        map.put(context.processInfo().getColumnIndex(), cellData);
+        context.tempResults().add(map);
+        context.processInfo().resetMap();
     }
 }

@@ -10,7 +10,7 @@ public interface XlsxTagHandler {
 
     void startElement(String qName, Attributes attributes, AnalysisContext context);
 
-    void endElement(String qName, AnalysisContext context);
+    void endElement(String qName, AnalysisContext context) throws Exception;
 
     void character(char ch[], int start, int length, AnalysisContext context);
 

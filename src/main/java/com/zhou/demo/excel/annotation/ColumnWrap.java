@@ -2,7 +2,9 @@ package com.zhou.demo.excel.annotation;
 
 import com.zhou.demo.excel.factory.impl.DefaultExcelFactory;
 
+import com.zhou.demo.excel.factory.impl.DefaultExcelFactory.ValidPipeLine;
 import java.lang.reflect.Field;
+import java.util.Map;
 
 public class ColumnWrap {
 

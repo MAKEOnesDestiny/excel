@@ -1,6 +1,7 @@
 package com.zhou.demo.excel.xlsx;
 
 import com.zhou.demo.excel.factory.ExcelFactoryConfigInner;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.apache.poi.xssf.model.StylesTable;
@@ -14,8 +15,10 @@ public class DefaultAnalysisContext<T> implements AnalysisContext<T> {
     private AnalysisInfo analysisInfo;
     private ProcessInfo processInfo;
     private volatile boolean initialized; //has initialized yet?
+    private final List<Exception> exceptions = new ArrayList<>();
 
-    private List<T> results;
+    private List<T> results = new ArrayList<>();
+    private List<Map<Integer, CellData>> tempResults = new ArrayList<>();
 
     @Override
     public Map<Integer, Object> sharingStrings() {
@@ -30,6 +33,11 @@ public class DefaultAnalysisContext<T> implements AnalysisContext<T> {
     @Override
     public List<T> results() {
         return results;
+    }
+
+    @Override
+    public List<Map<Integer, CellData>> tempResults() {
+        return tempResults;
     }
 
     @Override
@@ -60,6 +68,11 @@ public class DefaultAnalysisContext<T> implements AnalysisContext<T> {
     @Override
     public boolean isInitialized() {
         return false;
+    }
+
+    @Override
+    public List<Exception> processExceptions() {
+        return exceptions;
     }
 
     @Override

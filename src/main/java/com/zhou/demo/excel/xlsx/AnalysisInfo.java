@@ -1,9 +1,13 @@
 package com.zhou.demo.excel.xlsx;
 
+import static com.zhou.demo.excel.utils.BeanUtil.findSetMethod;
+import static com.zhou.demo.excel.utils.SelfAnnotationUtil.getMemberValuesMap;
+
 import com.zhou.demo.excel.annotation.Column;
 import com.zhou.demo.excel.annotation.ColumnWrap;
 import com.zhou.demo.excel.annotation.Excel;
 import com.zhou.demo.excel.annotation.ExcelBeanMetaData;
+import com.zhou.demo.excel.utils.AnalysisUtil;
 import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.util.HashMap;
@@ -41,7 +45,15 @@ public class AnalysisInfo {
             Field f = fields[i];
             Column c = f.getAnnotation(Column.class);
             if (c != null) {
-                cws[j] = new ColumnWrap(c, f, null);
+                String setMethodName = findSetMethod(f, true);
+                String initSetMethodName = c.setter();
+                if (initSetMethodName.equals("") && setMethodName != null) {
+                    //获取注解内部的值map
+                    Map<String, Object> valuesMap = getMemberValuesMap(c);
+                    //如果用户没有自定义setter,则使用默认的setter方法
+                    valuesMap.put("setter", setMethodName);
+                }
+                cws[j] = new ColumnWrap(c, f, AnalysisUtil.initPipeLine(c.valid()));
                 j++;
             }
             //else skip

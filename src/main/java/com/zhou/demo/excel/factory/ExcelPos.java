@@ -1,6 +1,5 @@
 package com.zhou.demo.excel.factory;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.apache.poi.ss.usermodel.Sheet;
@@ -20,15 +19,27 @@ public class ExcelPos {
      */
     private Integer columnIndex;
 
+    private String sheetName;
+
     private Sheet sheet;
 
+    public ExcelPos(Integer rowIndex, Integer columnIndex, String sheetName) {
+        Assert.notNull(rowIndex, "rowIndex不能为null");
+        Assert.notNull(columnIndex, "columnIndex不能为null");
+        Assert.notNull(sheetName, "sheet不能为null");
+        this.rowIndex = rowIndex;
+        this.columnIndex = columnIndex;
+        this.sheetName = sheetName;
+    }
+
     public ExcelPos(Integer rowIndex, Integer columnIndex, Sheet sheet) {
-        Assert.notNull(rowIndex,"rowIndex不能为null");
-        Assert.notNull(columnIndex,"columnIndex不能为null");
-        Assert.notNull(sheet,"sheet不能为null");
+        Assert.notNull(rowIndex, "rowIndex不能为null");
+        Assert.notNull(columnIndex, "columnIndex不能为null");
+        Assert.notNull(sheet, "sheet不能为null");
         this.rowIndex = rowIndex;
         this.columnIndex = columnIndex;
         this.sheet = sheet;
+        this.sheetName = sheet.getSheetName();
     }
 
     public Integer getRowIndex() {
@@ -45,6 +56,14 @@ public class ExcelPos {
 
     public void setColumnIndex(Integer columnIndex) {
         this.columnIndex = columnIndex;
+    }
+
+    public String getSheetName() {
+        return sheetName;
+    }
+
+    public void setSheetName(String sheetName) {
+        this.sheetName = sheetName;
     }
 
     public Sheet getSheet() {

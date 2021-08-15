@@ -17,4 +17,8 @@ public class ProcessInfo {
     //temp storage
     private CellData temp;
 
+    public void resetMap() {
+        map = new HashMap<>();
+    }
+
 }
