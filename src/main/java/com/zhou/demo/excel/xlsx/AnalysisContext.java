@@ -13,6 +13,7 @@ public interface AnalysisContext<T> {
 
     List<T> results();
 
+    @Deprecated
     List<Map<Integer,CellData>> tempResults();
 
     //mainly config

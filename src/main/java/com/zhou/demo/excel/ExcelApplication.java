@@ -31,8 +31,11 @@ public class ExcelApplication {
         System.out.println("start ==> "+ new Date());
         ExcelFactory saxEF = new SimpleSaxExcelFactory();
 //        ExcelFactory saxEF = new SimpleExcelFactory();
-        List<BigData> beans = saxEF.toBean(is, BigData.class);
+        List<BigData> beans = saxEF.toBean(is, BigData.class); //20s完成
         System.out.println("end ==> " + new Date());
+        while(true){
+            Thread.sleep(100000L);
+        }
     }
 
 }

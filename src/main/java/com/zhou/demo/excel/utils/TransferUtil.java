@@ -1,4 +1,4 @@
-package com.zhou.demo.excel.xlsx.tag;
+package com.zhou.demo.excel.utils;
 
 import static org.springframework.util.ReflectionUtils.findMethod;
 import static org.springframework.util.ReflectionUtils.invokeMethod;
@@ -12,64 +12,41 @@ import com.zhou.demo.excel.factory.ExcelPos;
 import com.zhou.demo.excel.factory.converter.Converter;
 import com.zhou.demo.excel.factory.converter.EmptyConverter;
 import com.zhou.demo.excel.factory.impl.DefaultExcelFactory.ValidPipeLine;
-import com.zhou.demo.excel.xlsx.AbstractXlsxTagHandler;
 import com.zhou.demo.excel.xlsx.AnalysisContext;
 import com.zhou.demo.excel.xlsx.CellData;
 import java.lang.reflect.Method;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import org.springframework.beans.BeanUtils;
 import org.springframework.core.convert.ConversionException;
 import org.springframework.core.convert.ConversionService;
-import org.springframework.util.CollectionUtils;
 
-@SuppressWarnings("all")
-public class SheetDataHandler extends AbstractXlsxTagHandler {
+public class TransferUtil {
 
-    @Override
-    public void endElement(String qName, AnalysisContext context) throws Exception {
-        //do clean job
-    }
-
-    /*
-    @Override
-    public void endElement(String qName, AnalysisContext context) throws Exception {
-        List<Map<Integer, CellData>> results = context.tempResults();
-        if (CollectionUtils.isEmpty(results) || results.size() < 2) {
-            return;
-        }
-        Integer index = 0;
-        Map<Integer, CellData> head = results.get(index++);
-        Map<Integer, ColumnWrap> headName2Index = resolveHead(head, context.analysisInfo().getExcelBeanMetaData());
-        while (index < results.size()) {
-            Map<Integer, CellData> dataMap = results.get(index);
-            Object bean = context.analysisInfo().getTargetClass().newInstance();
-            for (Map.Entry<Integer, ColumnWrap> t : headName2Index.entrySet()) {
-                try {
-                    processData(bean, dataMap.get(t.getKey()), t.getValue(), context.analysisInfo().getSheetName());
-                } catch (Exception e) {
-                    if (context.getConfig().isCatchAllException()) {
-                        context.processExceptions().add(e);
-                    } else {
-                        throw e;
-                    }
+    public static void endElement(Map<Integer, CellData> dataMap, Map<Integer, ColumnWrap> headName2Index,
+                           AnalysisContext context) throws Exception {
+        Object bean = context.analysisInfo().getTargetClass().newInstance();
+        for (Map.Entry<Integer, ColumnWrap> t : headName2Index.entrySet()) {
+            try {
+                processData(bean, dataMap.get(t.getKey()), t.getValue(), context.analysisInfo().getSheetName());
+            } catch (Exception e) {
+                if (context.getConfig().isCatchAllException()) {
+                    context.processExceptions().add(e);
+                } else {
+                    throw e;
                 }
             }
-            context.results().add(bean);
-            index++;
         }
+        context.results().add(bean);
     }
 
-    */
-/**
+    /**
      * return map : headName -> columnIndex
      *
      * @param head
      * @param excelBeanMetaData
-     *//*
-
-    private Map<Integer, ColumnWrap> resolveHead(Map<Integer, CellData> head, ExcelBeanMetaData excelBeanMetaData) {
+     */
+    public static Map<Integer, ColumnWrap> resolveHead(Map<Integer, CellData> head, ExcelBeanMetaData excelBeanMetaData) {
         if (head == null || head.size() == 0) {
             throw new RuntimeException("excel head can't be empty");
         }
@@ -88,7 +65,7 @@ public class SheetDataHandler extends AbstractXlsxTagHandler {
         return index2HeadName;
     }
 
-    private void processData(Object bean, CellData cellData, ColumnWrap cw, String sheetName)
+    private static void processData(Object bean, CellData cellData, ColumnWrap cw, String sheetName)
             throws Exception {
         String data = cellData.getDataString();
 
@@ -111,7 +88,7 @@ public class SheetDataHandler extends AbstractXlsxTagHandler {
         invokeMethod(setMethod, bean, parsedValue);
     }
 
-    protected final <T> Object convert(String rawValue, Class<? extends Converter> converterClazz, ExcelPos pos,
+    protected static final <T> Object convert(String rawValue, Class<? extends Converter> converterClazz, ExcelPos pos,
                                        String columnName, Class<T> tClass) throws ExcelDataWrongException {
         ConversionService conversionService = ApplicationContextAccessor.getApplicationContext()
                 .getBean(ConversionService.class);
@@ -145,7 +122,7 @@ public class SheetDataHandler extends AbstractXlsxTagHandler {
         return parsedValue;
     }
 
-    protected boolean validBeforeConvert(String rawValue, ColumnWrap cw, ExcelPos pos, Class tClass) throws Exception {
+    protected static boolean validBeforeConvert(String rawValue, ColumnWrap cw, ExcelPos pos, Class tClass) throws Exception {
         ValidPipeLine line = cw.getPipeLine();
         //null代表没有配置校验,默认通过
         if (line == null) {
@@ -167,7 +144,7 @@ public class SheetDataHandler extends AbstractXlsxTagHandler {
         }
     }
 
-    protected boolean validAfterConvert(Object convertedValue, String rawValue, ColumnWrap cw, ExcelPos pos,
+    protected static boolean validAfterConvert(Object convertedValue, String rawValue, ColumnWrap cw, ExcelPos pos,
                                         Class tClass) throws Exception {
         ValidPipeLine line = cw.getPipeLine();
         //null代表没有配置校验,默认通过
@@ -196,7 +173,6 @@ public class SheetDataHandler extends AbstractXlsxTagHandler {
             }
         }
     }
-*/
 
 
 }

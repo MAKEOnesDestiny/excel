@@ -19,7 +19,7 @@ public class ExcelContentHandler extends DefaultHandler {
         put("c", new CTagHandler());
         put("v", new VTagHandler());
         put("row", new RowTagHandler());
-        put("sheetData", new SheetDataHandler());
+//        put("sheetData", new SheetDataHandler());
     }};
 
     private AnalysisContext analysisContext;
